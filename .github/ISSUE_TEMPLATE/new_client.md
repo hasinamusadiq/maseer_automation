@@ -22,8 +22,8 @@ assignees: ''
 ### Visual Identity
 | Field | Value |
 |-------|-------|
-| **Primary Color** | &lt;!-- Hex code --&gt; |
-| **Secondary Color** | &lt;!-- Hex code --&gt; |
+| **Primary Color** | &lt;!-- Hex code (e.g., #D32F2F) --&gt; |
+| **Secondary Color** | &lt;!-- Hex code (e.g., #FFC107) --&gt; |
 | **Logo URL** | &lt;!-- Direct image link --&gt; |
 
 ### Marketing Details
