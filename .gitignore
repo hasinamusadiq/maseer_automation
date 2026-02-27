@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment Variables
+.env
+.env.local
+
+# Generated Content
+output/*.mp4
+logos/*.png
+*.mp4
+*.png
+!assets/*.png
+
+# Data backups
+data/*.bak
+
+# Temporary Files
+*.log
+.DS_Store
+Thumbs.db
+
+# Model Cache
+.cache/
