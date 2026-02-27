@@ -58,7 +58,7 @@ def validate_client_data(data):
     missing = [f for f in required if not data.get(f)]
     
     if missing:
-        print(f"❌ Missing required fields: {missing}")
+        print(f"Error: Missing required fields: {missing}")
         return False
     
     return True
@@ -74,12 +74,12 @@ def add_to_clients_json(client_data):
     except FileNotFoundError:
         clients = []
     except json.JSONDecodeError:
-        print("❌ Error parsing clients.json")
+        print("Error: Could not parse clients.json")
         sys.exit(1)
     
     existing = [c for c in clients if c.get('brand_name') == client_data.get('brand_name')]
     if existing:
-        print(f"⚠️ Client '{client_data['brand_name']}' already exists. Updating...")
+        print(f"Warning: Client '{client_data['brand_name']}' already exists. Updating...")
         clients = [c for c in clients if c.get('brand_name') != client_data.get('brand_name')]
     
     clients.append(client_data)
@@ -87,7 +87,7 @@ def add_to_clients_json(client_data):
     with open(clients_file, 'w', encoding='utf-8') as f:
         json.dump(clients, f, indent=2, ensure_ascii=False)
     
-    print(f"✅ Added client: {client_data['brand_name']}")
+    print(f"Success: Added client: {client_data['brand_name']}")
     return True
 
 
@@ -96,7 +96,7 @@ def main():
     github_token = os.getenv('GITHUB_TOKEN')
     
     if not issue_number:
-        print("❌ ISSUE_NUMBER not set")
+        print("Error: ISSUE_NUMBER not set")
         sys.exit(1)
     
     repo = os.getenv('GITHUB_REPOSITORY')
@@ -111,18 +111,14 @@ def main():
         response = requests.get(url, headers=headers)
         
         if response.status_code != 200:
-            print(f"❌ Failed to fetch issue: {response.status_code}")
+            print(f"Error: Failed to fetch issue: {response.status_code}")
             sys.exit(1)
         
         issue_data = response.json()
         body = issue_data.get('body', '')
     else:
-        if len(sys.argv) > 1:
-            with open(sys.argv[1], 'r') as f:
-                body = f.read()
-        else:
-            print("❌ No input provided")
-            sys.exit(1)
+        print("Error: No GitHub token or repo info")
+        sys.exit(1)
     
     client_data = parse_issue_body(body)
     
