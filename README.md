@@ -1,6 +1,6 @@
-# 🎯 Maseer Media Inc.
+# 🎯 Maseer Automation
 
-AI-powered video marketing for Afghan businesses. The automation backend for Ariana Coach Portal.
+AI-powered video marketing for Afghan businesses. The automation backend for Maseer Portal.
 
 ## 🌐 How It Works
 
