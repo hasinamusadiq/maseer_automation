@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import requests
+import base64
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -12,18 +13,40 @@ from image_service import generate_image_with_retry
 from video_creator import create_broadcast_reel, get_platform_specs
 
 
-def download_logo(logo_url, brand_name):
+def ensure_logo_local(logo_path_or_data, brand_name):
+    """
+    Ensures logo is available as local file path.
+    Handles: local path, URL, or base64 string.
+    """
+    if not logo_path_or_data:
+        return None
+    
+    # Already a local file path
+    if isinstance(logo_path_or_data, str) and os.path.exists(logo_path_or_data):
+        print(f"   ✅ Logo already local: {logo_path_or_data}")
+        return logo_path_or_data
+    
+    # URL - download it
+    if isinstance(logo_path_or_data, str) and logo_path_or_data.startswith('http'):
+        return download_logo_from_url(logo_path_or_data, brand_name)
+    
+    return None
+
+
+def download_logo_from_url(logo_url, brand_name):
     """Download logo from URL and save locally."""
-    if not logo_url:
+    if not logo_url or not logo_url.startswith('http'):
         return None
 
     try:
         response = requests.get(logo_url, timeout=10)
         if response.status_code == 200:
-            logo_path = f"logos/{brand_name.replace(' ', '_')}_logo.png"
+            safe_name = brand_name.replace(' ', '_')
+            logo_path = f"logos/{safe_name}_logo.png"
             os.makedirs("logos", exist_ok=True)
             with open(logo_path, 'wb') as f:
                 f.write(response.content)
+            print(f"   ✅ Logo downloaded: {logo_path}")
             return logo_path
     except Exception as e:
         print(f"   ⚠️ Could not download logo: {e}")
@@ -65,12 +88,10 @@ def get_variation_index():
 def get_platform_for_run(client_data):
     """
     Select SINGLE platform for this run based on time rotation.
-    This ensures only ONE video per client per workflow run.
     """
     platforms = client_data.get('platforms', ['instagram_feed'])
     variation = get_variation_index()
     
-    # Cycle through platforms based on variation
     platform_index = variation % len(platforms)
     selected = platforms[platform_index]
     
@@ -91,14 +112,13 @@ def process_single_client(client_data):
     print(f"{'='*60}")
 
     try:
-        # Download logo if URL provided
-        logo_path = client_data.get('logo_path')
-        if logo_path and logo_path.startswith('http'):
-            logo_path = download_logo(logo_path, brand_name)
-            client_data['logo_path'] = logo_path
+        # Handle logo - ensure it's a local file path
+        logo_input = client_data.get('logo_path')
+        logo_path = ensure_logo_local(logo_input, brand_name)
+        client_data['logo_path'] = logo_path  # Update with local path
 
         # Generate content for SELECTED platform only
-        print("   🤖 Generating broadcast content...")
+        print("   🤖 Generating content with AI...")
         content = get_content_from_groq(
             client_data, 
             platform=selected_platform,
@@ -114,18 +134,18 @@ def process_single_client(client_data):
 
         # Generate image
         clean_name = brand_name.replace(' ', '_')
-        print("   🖼️ Generating broadcast image...")
+        print("   🖼️ Generating image...")
         image_path = generate_image_with_retry(content['image_prompt'], clean_name)
 
         if not image_path:
             print("   ❌ Image generation failed")
             return False
 
-        # Generate SINGLE video (broadcast style)
+        # Generate SINGLE video
         timestamp = datetime.now().strftime("%m%d_%H%M")
         output_path = f"output/{clean_name}_{selected_platform}_v{variation+1}_{timestamp}.mp4"
         
-        print(f"   🎬 Creating broadcast video...")
+        print(f"   🎬 Creating video...")
         success = create_broadcast_reel(
             image_path,
             content['text'],
@@ -136,13 +156,13 @@ def process_single_client(client_data):
         )
 
         if success:
-            # Upload with broadcast branding
-            caption = (f"📺 NEW CLIENT: {brand_name} | {selected_platform.replace('_', ' ').title()}\n"
+            # Upload with Ariana Coach branding
+            caption = (f"🎯 ARIANA COACH: {brand_name} | {selected_platform.replace('_', ' ').title()}\n"
                       f"📝 {content['text']}\n"
-                      f"🎨 Broadcast Style: B Nazanin Bold + TV Effects\n"
+                      f"🎨 Professional AI Marketing Video\n"
                       f"⏰ Variation {variation + 1} of 4")
             send_to_telegram(output_path, caption)
-            print(f"   ✅ Successfully processed new client: {brand_name}")
+            print(f"   ✅ Successfully processed: {brand_name}")
             return True
         else:
             print(f"   ❌ Video creation failed for: {brand_name}")
@@ -156,14 +176,7 @@ def process_single_client(client_data):
 
 
 def get_new_clients_only():
-    """
-    Get ONLY new clients from clients.json that haven't been processed yet.
-    A client is considered "new" if it was added in the last 7 days OR
-    if it has no 'last_processed' timestamp.
-    
-    For new-client-only workflow, we process ALL clients in the file
-    assuming the file only contains new signups from frontend.
-    """
+    """Get new clients from clients.json."""
     try:
         with open('data/clients.json', 'r', encoding='utf-8') as f:
             clients = json.load(f)
@@ -171,7 +184,6 @@ def get_new_clients_only():
         print("   ℹ️ No clients.json found or empty")
         return []
     
-    # Filter out template/comment entries
     valid_clients = []
     for client in clients:
         if isinstance(client, dict) and 'brand_name' in client and not client.get('_comment'):
@@ -181,22 +193,17 @@ def get_new_clients_only():
 
 
 def mark_client_processed(client_data):
-    """
-    Mark a client as processed by adding timestamp.
-    This helps track which clients have been serviced.
-    """
+    """Mark a client as processed by adding timestamp."""
     try:
         with open('data/clients.json', 'r', encoding='utf-8') as f:
             clients = json.load(f)
         
-        # Find and update the client
         for client in clients:
             if isinstance(client, dict) and client.get('brand_name') == client_data['brand_name']:
                 client['last_processed'] = datetime.now().isoformat()
                 client['processed_count'] = client.get('processed_count', 0) + 1
                 break
         
-        # Save back
         with open('data/clients.json', 'w', encoding='utf-8') as f:
             json.dump(clients, f, indent=2, ensure_ascii=False)
             
@@ -205,30 +212,30 @@ def mark_client_processed(client_data):
 
 
 def main():
-    print("🚀 Maseer Broadcast Pipeline - NEW CLIENTS ONLY")
+    print("🎯 Ariana Coach - AI Marketing Pipeline")
     print(f"⏰ Run: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("🎯 Mode: Process only new clients from frontend signups")
-    print("📺 Style: B Nazanin Bold + Impact | Broadcast TV Effects")
+    print("🎯 Mode: Process new clients from Ariana Coach Portal")
+    print("💾 Logo: Supports URL and base64 uploads")
     print("-" * 60)
 
     # Ensure directories exist
     os.makedirs('output', exist_ok=True)
     os.makedirs('logos', exist_ok=True)
 
-    # Get new clients (from frontend signups via GitHub Issues)
+    # Get new clients
     clients = get_new_clients_only()
     
     if not clients:
         print("\n📭 No new clients to process.")
         print("💡 New clients sign up at: https://hasinamusadiq.github.io/maseer-portal/")
-        print("   (Form submissions create GitHub Issues that update clients.json)")
         print("\n⏳ Waiting for next scheduled run...")
         return
 
-    print(f"\n📋 Found {len(clients)} new client(s) from frontend signups:")
+    print(f"\n📋 Found {len(clients)} new client(s):")
     for c in clients:
         status = "🆕 New" if not c.get('last_processed') else "🔄 Repeat"
-        print(f"   • {c['brand_name']} ({status})")
+        logo_status = "🖼️ Has logo" if c.get('logo_path') else "⚠️ No logo"
+        print(f"   • {c['brand_name']} ({status}) - {logo_status}")
 
     # Statistics
     stats = {
@@ -237,7 +244,7 @@ def main():
         'failed': 0
     }
 
-    # Process each new client
+    # Process each client
     for idx, client_data in enumerate(clients, 1):
         print(f"\n🔔 Processing client {idx}/{len(clients)}...")
         
@@ -249,26 +256,25 @@ def main():
         else:
             stats['failed'] += 1
         
-        # Delay between clients (except last one)
         if idx < len(clients):
             time.sleep(5)
 
     # Summary
     print(f"\n{'='*60}")
-    print("📊 NEW CLIENT PROCESSING SUMMARY")
+    print("📊 PROCESSING SUMMARY")
     print(f"{'='*60}")
-    print(f"New Clients Found: {stats['total_new']}")
+    print(f"Clients Found: {stats['total_new']}")
     print(f"Successfully Processed: {stats['successful']}")
     print(f"Failed: {stats['failed']}")
-    print(f"Videos Generated: {stats['successful']} (1 per client)")
+    print(f"Videos Generated: {stats['successful']}")
     print(f"{'='*60}")
     
     if stats['successful'] > 0:
-        print("✅ New clients have been onboarded! Videos delivered via Telegram.")
+        print("✅ Videos delivered via Telegram!")
     else:
         print("⚠️ No clients were successfully processed this run.")
     
-    print("\n🌐 Next new client can sign up at:")
+    print("\n🌐 Ariana Coach Portal:")
     print("   https://hasinamusadiq.github.io/maseer-portal/")
     print(f"⏰ Next automated run: +6 hours")
     print(f"{'='*60}")
