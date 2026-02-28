@@ -10,6 +10,11 @@ on:
         required: true
         type: number
 
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
 jobs:
   process-form:
     runs-on: ubuntu-latest
@@ -30,9 +35,13 @@ jobs:
       - name: Parse Issue and Update Clients
         id: parse
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number || github.event.inputs.issue_number }}
-        run: python .github/scripts/update_clients.py
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          echo "Processing issue #$ISSUE_NUMBER"
+          python .github/scripts/update_clients.py
           
       - name: Commit updated clients.json
         if: steps.parse.outputs.updated == 'true'
@@ -40,20 +49,21 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add data/clients.json
-          git commit -m "Add new client from issue #${{ github.event.issue.number || github.event.inputs.issue_number }}"
-          git push
+          git commit -m "Add new client from issue #${{ github.event.issue.number || github.event.inputs.issue_number }}" || echo "No changes"
+          git push || echo "Nothing to push"
           
       - name: Trigger Video Generation
         if: steps.parse.outputs.updated == 'true'
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: main.yml
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
           
       - name: Comment on Issue
         if: steps.parse.outputs.updated == 'true'
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.PAT_TOKEN }}
           script: |
             github.rest.issues.createComment({
               issue_number: context.issue.number || ${{ github.event.inputs.issue_number }},
