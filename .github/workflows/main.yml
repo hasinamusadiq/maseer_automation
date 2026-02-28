@@ -20,10 +20,22 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Fix ImageMagick Policy
+        run: |
+          sudo sed -i 's/<policy domain="coder" rights="none" pattern="TEXT" \\/>/<policy domain="coder" rights="read|write" pattern="TEXT" \\/>/g' /etc/ImageMagick-6/policy.xml
+          sudo sed -i 's/<policy domain="coder" rights="none" pattern="LABEL" \\/>/<policy domain="coder" rights="read|write" pattern="LABEL" \\/>/g' /etc/ImageMagick-6/policy.xml
+          sudo sed -i 's/<policy domain="coder" rights="none" pattern="PS" \\/>/<policy domain="coder" rights="read|write" pattern="PS" \\/>/g' /etc/ImageMagick-6/policy.xml
+          sudo sed -i 's/<policy domain="coder" rights="none" pattern="PS2" \\/>/<policy domain="coder" rights="read|write" pattern="PS2" \\/>/g' /etc/ImageMagick-6/policy.xml
+          sudo sed -i 's/<policy domain="coder" rights="none" pattern="PS3" \\/>/<policy domain="coder" rights="read|write" pattern="PS3" \\/>/g' /etc/ImageMagick-6/policy.xml
+          sudo sed -i 's/<policy domain="coder" rights="none" pattern="XPS" \\/>/<policy domain="coder" rights="read|write" pattern="XPS" \\/>/g' /etc/ImageMagick-6/policy.xml
+          sudo sed -i 's/<policy domain="coder" rights="none" pattern="MVG" \\/>/<policy domain="coder" rights="read|write" pattern="MVG" \\/>/g' /etc/ImageMagick-6/policy.xml
+          sudo sed -i 's/<policy domain="coder" rights="none" pattern="MSVG" \\/>/<policy domain="coder" rights="read|write" pattern="MSVG" \\/>/g' /etc/ImageMagick-6/policy.xml
+          sudo cat /etc/ImageMagick-6/policy.xml | grep -E "(TEXT|LABEL|MVG)" | head -5
+
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y imagemagick ghostscript
+          sudo apt-get install -y imagemagick ghostscript fonts-dejavu fonts-freefont-ttf fonts-noto-core
           pip install -r requirements.txt
 
       - name: Run Script
@@ -33,3 +45,11 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python -m src.main
+
+      - name: Upload Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-videos
+          path: output/*.mp4
+          retention-days: 7
