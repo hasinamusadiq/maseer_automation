@@ -1,14 +1,14 @@
-# 📺 Maseer Automation - New Client Broadcast Pipeline
+# 🎯 Ariana Coach Automation
 
-AI-powered broadcast TV-quality video marketing for **new Afghan business signups**.
+AI-powered video marketing for Afghan businesses. The automation backend for Ariana Coach Portal.
 
 ## 🌐 How It Works
 
-1. **New Client Signup**: Client fills form at [maseer-portal](https://hasinamusadiq.github.io/maseer_portal/)
+1. **Client Signup**: Business fills form at [Ariana Coach Portal](https://hasinamusadiq.github.io/maseer-portal/)
 2. **GitHub Issue Created**: Form submission creates an issue in this repository
-3. **Auto-Processing**: GitHub Actions automatically adds client to `clients.json`
-4. **Video Generation**: Every 6 hours, pipeline generates ONE broadcast video per new client
-5. **Delivery**: Video sent via Telegram with B Nazanin Bold + TV effects
+3. **Auto-Processing**: GitHub Actions parses the issue and adds client to `clients.json`
+4. **Video Generation**: Every 6 hours, pipeline generates ONE professional video per client
+5. **Delivery**: Video sent via Telegram with branded graphics
 
 ## 🚀 Setup
 
@@ -20,10 +20,9 @@ AI-powered broadcast TV-quality video marketing for **new Afghan business signup
 | `HF_TOKEN` | Hugging Face image generation |
 | `TELEGRAM_BOT_TOKEN` | Video delivery |
 | `TELEGRAM_CHAT_ID` | Your Telegram chat ID |
-| `PAT_TOKEN` | GitHub Personal Access Token (for cross-repo triggers) |
+| `PAT_TOKEN` | GitHub Personal Access Token (repo scope) |
 
 ### Frontend Repository
-
-The signup form lives at `hasinamusadiq.github.io/maseer_portal/` (separate repo).
+The signup form lives at `hasinamusadiq.github.io/maseer-portal/` (separate repo).
 
 ## 📋 Client Data Flow
