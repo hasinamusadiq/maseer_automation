@@ -107,7 +107,7 @@ def process_single_client(client_data):
     selected_platform, variation = get_platform_for_run(client_data)
     
     print(f"\n{'='*60}")
-    print(f"✨ New Client: {brand_name}")
+    print(f"✨ Maseer Media Inc. - New Client: {brand_name}")
     print(f"🎲 Variation {variation + 1}/4 | Platform: {selected_platform}")
     print(f"{'='*60}")
 
@@ -156,11 +156,12 @@ def process_single_client(client_data):
         )
 
         if success:
-            # Upload with Ariana Coach branding
-            caption = (f"🎯 ARIANA COACH: {brand_name} | {selected_platform.replace('_', ' ').title()}\n"
+            # Upload with Maseer Media Inc. branding
+            caption = (f"📺 MASEER MEDIA: {brand_name} | {selected_platform.replace('_', ' ').title()}\n"
                       f"📝 {content['text']}\n"
                       f"🎨 Professional AI Marketing Video\n"
-                      f"⏰ Variation {variation + 1} of 4")
+                      f"⏰ Variation {variation + 1} of 4\n"
+                      f"Powered by Ariana Coach")
             send_to_telegram(output_path, caption)
             print(f"   ✅ Successfully processed: {brand_name}")
             return True
@@ -212,10 +213,11 @@ def mark_client_processed(client_data):
 
 
 def main():
-    print("🎯 Ariana Coach - AI Marketing Pipeline")
+    print("🚀 Maseer Media Inc. - AI Marketing Pipeline")
     print(f"⏰ Run: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("🎯 Mode: Process new clients from Ariana Coach Portal")
+    print("📺 Mode: Process new clients from portal")
     print("💾 Logo: Supports URL and base64 uploads")
+    print("⚡ Powered by Ariana Coach")
     print("-" * 60)
 
     # Ensure directories exist
@@ -261,7 +263,7 @@ def main():
 
     # Summary
     print(f"\n{'='*60}")
-    print("📊 PROCESSING SUMMARY")
+    print("📊 MASEER MEDIA INC. - PROCESSING SUMMARY")
     print(f"{'='*60}")
     print(f"Clients Found: {stats['total_new']}")
     print(f"Successfully Processed: {stats['successful']}")
@@ -274,8 +276,9 @@ def main():
     else:
         print("⚠️ No clients were successfully processed this run.")
     
-    print("\n🌐 Ariana Coach Portal:")
+    print("\n🌐 Maseer Media Inc. Portal:")
     print("   https://hasinamusadiq.github.io/maseer-portal/")
+    print(f"⚡ Powered by Ariana Coach")
     print(f"⏰ Next automated run: +6 hours")
     print(f"{'='*60}")
 
