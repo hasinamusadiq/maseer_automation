@@ -1,4 +1,4 @@
-name: Process New Client Form
+name: Process New Client from Frontend
 
 on:
   issues:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       issue_number:
-        description: 'Issue number to process'
+        description: 'Issue number to process (from frontend form)'
         required: true
         type: number
 
@@ -16,8 +16,9 @@ permissions:
   actions: write
 
 jobs:
-  process-form:
+  process-frontend-signup:
     runs-on: ubuntu-latest
+    # Only run if issue has 'new-client' label or is manually triggered
     if: contains(github.event.issue.labels.*.name, 'new-client') || github.event_name == 'workflow_dispatch'
     
     steps:
@@ -32,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: pip install requests
           
-      - name: Parse Issue and Update Clients
+      - name: Parse Frontend Form and Add Client
         id: parse
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
@@ -40,27 +41,49 @@ jobs:
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
-          echo "Processing issue #$ISSUE_NUMBER"
+          echo "🌐 Processing new client signup from frontend form"
+          echo "Issue #$ISSUE_NUMBER"
           python .github/scripts/update_clients.py
           
       - name: Commit updated clients.json
         if: steps.parse.outputs.updated == 'true'
         run: |
           git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.name "Maseer Frontend Bot"
           git add data/clients.json
-          git commit -m "Add new client from issue #${{ github.event.issue.number || github.event.inputs.issue_number }}" || echo "No changes"
+          git commit -m "🆕 New client signup from frontend: Issue #${{ github.event.issue.number || github.event.inputs.issue_number }}" || echo "No changes"
           git push || echo "Nothing to push"
           
-      - name: Trigger Video Generation
+      - name: Trigger Video Generation Pipeline
         if: steps.parse.outputs.updated == 'true'
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: main.yml
           token: ${{ secrets.PAT_TOKEN }}
           
-      - name: Comment on Issue
+      - name: Comment on Issue (Success)
         if: steps.parse.outputs.updated == 'true'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            const brandName = '${{ steps.parse.outputs.brand_name }}';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number || ${{ github.event.inputs.issue_number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ **Welcome to Maseer, ${brandName}!**\n\nYour brand has been registered successfully. Here's what happens next:\n\n🎬 **Video Production**: Our AI is now crafting your broadcast TV-quality marketing video\n⏱️ **Timeline**: Ready within 6 hours (next scheduled run)\n📺 **Style**: B Nazanin Bold typography + dramatic zoom effects + professional graphics\n📤 **Delivery**: You'll receive the video via Telegram\n\n**Track Progress**: [View Workflow Runs](https://github.com/${{ github.repository }}/actions)\n\n*This is an automated message from [Maseer Portal](https://hasinamusadiq.github.io/maseer-portal/)*`
+            });
+            github.rest.issues.update({
+              issue_number: context.issue.number || ${{ github.event.inputs.issue_number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'closed',
+              labels: ['new-client', 'processed']
+            });
+            
+      - name: Comment on Issue (Failure)
+        if: steps.parse.outputs.updated == 'false'
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.PAT_TOKEN }}
@@ -69,11 +92,5 @@ jobs:
               issue_number: context.issue.number || ${{ github.event.inputs.issue_number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ **Client added successfully!** Video generation has been triggered. Your marketing reel will be ready within 6 hours.'
-            });
-            github.rest.issues.update({
-              issue_number: context.issue.number || ${{ github.event.inputs.issue_number }},
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'closed'
+              body: `❌ **Registration Issue**\n\nWe encountered a problem processing your signup. Please check:\n- All required fields are filled\n- Logo URL is accessible\n- Colors are in hex format (e.g., #D32F2F)\n\n[Contact Support](https://github.com/${{ github.repository }}/issues) for assistance.`
             });
