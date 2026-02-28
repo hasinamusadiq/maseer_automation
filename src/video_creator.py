@@ -1,5 +1,5 @@
 import os
-from moviepy.editor import ImageClip, TextClip, CompositeVideoClip, ColorClip, concatenate_videoclips
+from moviepy.editor import ImageClip, TextClip, CompositeVideoClip, ColorClip
 import arabic_reshaper
 from bidi.algorithm import get_display
 from PIL import Image as PILImage
@@ -75,11 +75,13 @@ def create_animated_logo(logo_path, video_width, video_height, overlay_height, o
                     .set_duration(duration)
                     .resize((logo_width, logo_height))
                     .set_position(lambda t: (
-                        start_x + (final_x - start_x) * min(t / 1.5, 1),  # Slide in over 1.5 seconds
+                        start_x + (final_x - start_x) * min(t / 1.5, 1),
                         final_y
                     ))
-                    .set_opacity(lambda t: min(t * 2, 1))  # Fade in
                     )
+        
+        # Use fadein instead of lambda opacity
+        logo_clip = logo_clip.fadein(0.5)
         
         return logo_clip
     except Exception as e:
@@ -91,7 +93,7 @@ def create_advanced_video_reel(image_path, text, output_path, client_data, motio
     """Creates a premium 10-second video reel with dynamic animations."""
     try:
         duration = 10
-        fps = 20  # Higher FPS for smoother motion
+        fps = 20
         display_text = prepare_persian_text(text)
         
         persian_font = get_available_persian_font()
@@ -102,11 +104,9 @@ def create_advanced_video_reel(image_path, text, output_path, client_data, motio
         
         # Enhanced zoom + pan motion (Ken Burns effect)
         if motion == 'zoom_in':
-            # Start zoomed out, slowly zoom in while panning slightly
-            bg_clip = bg_clip.resize(lambda t: 1 + 0.08 * (t / duration))  # 8% zoom over 10s
-            # Add subtle pan
+            bg_clip = bg_clip.resize(lambda t: 1 + 0.08 * (t / duration))
             bg_clip = bg_clip.set_position(lambda t: (
-                -bg_clip.w * 0.02 * (t / duration),  # Pan right slowly
+                -bg_clip.w * 0.02 * (t / duration),
                 'center'
             ))
         elif motion == 'pan_right':
@@ -120,7 +120,6 @@ def create_advanced_video_reel(image_path, text, output_path, client_data, motio
                 'center'
             ))
         else:
-            # Default: slow zoom with subtle pan
             bg_clip = bg_clip.resize(lambda t: 1 + 0.06 * (t / duration))
 
         primary_color = client_data.get('primary_color', '#D32F2F')
@@ -135,9 +134,30 @@ def create_advanced_video_reel(image_path, text, output_path, client_data, motio
         else:
             fontsize = 60
 
-        txt_width = int(bg_clip.w * 0.60)  # Leave room for logo
+        txt_width = int(bg_clip.w * 0.60)
 
-        # Create main text with animation
+        # Calculate overlay dimensions first
+        temp_text = TextClip(
+            display_text,
+            fontsize=fontsize,
+            color='white',
+            font=persian_font,
+            method='caption',
+            size=(txt_width, None),
+            align='center',
+            interline=-8
+        )
+        txt_w, txt_h = temp_text.size
+        temp_text.close()
+        
+        padding = 40
+        overlay_height = max(txt_h + (padding * 2), int(bg_clip.h * 0.18))
+        overlay_y_final = bg_clip.h - overlay_height - 60
+
+        # Create main text with slide-up animation
+        text_final_y = overlay_y_final + (overlay_height - txt_h) // 2
+        text_start_y = text_final_y + 30  # Start 30px lower
+
         txt_clip = (TextClip(
             display_text,
             fontsize=fontsize,
@@ -149,38 +169,17 @@ def create_advanced_video_reel(image_path, text, output_path, client_data, motio
             interline=-8
         )
         .set_duration(duration)
-        .set_start(0.5)  # Slight delay
-        )
-
-        # Animate text: slide up + fade in
-        text_final_y = 0  # Will be calculated relative to overlay
-        txt_clip = txt_clip.set_position(lambda t: (
-            'center',
-            50 + max(0, 30 - 30 * min(t / 1.0, 1))  # Slide up over 1 second
-        )).set_opacity(lambda t: min(t * 2, 1))  # Fade in
-
-        # Get text dimensions for overlay
-        txt_w, txt_h = txt_clip.size
-        padding = 40
-        overlay_height = max(txt_h + (padding * 2), int(bg_clip.h * 0.18))
-
-        # Create animated color stripe (slide up from bottom)
-        overlay_y_final = bg_clip.h - overlay_height - 60
-        overlay_y_start = bg_clip.h + 20
-
-        overlay = (ColorClip(
-            size=(bg_clip.w, overlay_height),
-            color=hex_to_rgb(primary_color)
-        )
-        .set_duration(duration)
-        .set_opacity(0.90)
+        .set_start(0.5)
         .set_position(lambda t: (
-            'center',
-            overlay_y_start + (overlay_y_final - overlay_y_start) * min(t / 0.8, 1)  # Slide up in 0.8s
+            int(bg_clip.w * 0.05),
+            text_start_y + (text_final_y - text_start_y) * min((t - 0.5) / 1.0, 1) if t >= 0.5 else text_start_y
         ))
         )
+        
+        # Fade in text
+        txt_clip = txt_clip.fadein(0.5)
 
-        # Create shadow for text (offset slightly)
+        # Create shadow for text
         shadow_clip = (TextClip(
             display_text,
             fontsize=fontsize,
@@ -193,38 +192,50 @@ def create_advanced_video_reel(image_path, text, output_path, client_data, motio
         )
         .set_duration(duration)
         .set_start(0.5)
-        .set_opacity(0.4)
+        .set_position(lambda t: (
+            int(bg_clip.w * 0.05) + 4,
+            (text_start_y + (text_final_y - text_start_y) * min((t - 0.5) / 1.0, 1) if t >= 0.5 else text_start_y) + 4
+        ))
+        )
+        shadow_clip = shadow_clip.set_opacity(0.4)
+        shadow_clip = shadow_clip.fadein(0.5)
+
+        # Create animated color stripe (slide up from bottom)
+        overlay_y_start = bg_clip.h + 20
+
+        overlay = (ColorClip(
+            size=(bg_clip.w, overlay_height),
+            color=hex_to_rgb(primary_color)
+        )
+        .set_duration(duration)
+        .set_opacity(0.90)
+        .set_position(lambda t: (
+            'center',
+            overlay_y_start + (overlay_y_final - overlay_y_start) * min(t / 0.8, 1)
+        ))
         )
 
-        # Position text and shadow on the stripe (left side, leaving room for logo)
-        text_x = int(bg_clip.w * 0.05)
-        
-        def get_text_y(t):
-            # Text sits on the overlay
-            overlay_y = overlay_y_start + (overlay_y_final - overlay_y_start) * min(t / 0.8, 1)
-            return overlay_y + (overlay_height - txt_h) // 2
-
-        txt_clip = txt_clip.set_position(lambda t: (text_x, get_text_y(t)))
-        shadow_clip = shadow_clip.set_position(lambda t: (text_x + 4, get_text_y(t) + 4))
-
-        # Add top gradient for visual polish (fades in)
+        # Add top gradient for visual polish
         gradient_height = 200
         top_gradient = (ColorClip(
             size=(bg_clip.w, gradient_height),
             color=(0, 0, 0)
         )
         .set_duration(duration)
-        .set_opacity(lambda t: 0.3 * min(t, 1))  # Fade to 30%
+        .set_opacity(0.3)
         .set_position(('center', 0))
         )
+        
+        # Fade in gradient
+        top_gradient = top_gradient.fadein(0.5)
 
         # Build composition layers (bottom to top)
         layers = [
-            bg_clip,           # Animated background
-            top_gradient,      # Top vignette
-            overlay,           # Animated color stripe
-            shadow_clip,       # Text shadow
-            txt_clip,          # Main text
+            bg_clip,
+            top_gradient,
+            overlay,
+            shadow_clip,
+            txt_clip,
         ]
 
         # Add animated logo
@@ -243,13 +254,13 @@ def create_advanced_video_reel(image_path, text, output_path, client_data, motio
         # Export with high quality settings
         final_video.write_videofile(
             output_path,
-            fps=fps,           # 20 FPS for smooth motion
+            fps=fps,
             codec='libx264',
             audio=False,
             logger=None,
             threads=4,
             preset='medium',
-            bitrate='5000k'    # Higher quality
+            bitrate='5000k'
         )
 
         # Clean up
