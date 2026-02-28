@@ -1,9 +1,8 @@
 ---
-name: New Client Registration - Maseer Media Inc.
+name: New Client Registration
 about: Register a new brand for AI video marketing
 title: "New Client: [Brand Name]"
-labels: [new-client, automated]
-assignees: ''
+labels: [new-client]
 ---
 
 ## New Brand Registration - Maseer Media Inc.
@@ -22,8 +21,8 @@ assignees: ''
 ### Visual Identity
 | Field | Value |
 |-------|-------|
-| **Primary Color** | &lt;!-- Hex code (e.g., #6B21A8) --&gt; |
-| **Secondary Color** | &lt;!-- Hex code (e.g., #EAB308) --&gt; |
+| **Primary Color** | &lt;!-- Hex code --&gt; |
+| **Secondary Color** | &lt;!-- Hex code --&gt; |
 | **Logo** | &lt;!-- Uploaded via form --&gt; |
 
 ### Marketing Details
