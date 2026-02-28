@@ -1,4 +1,3 @@
-```yaml
 name: Process New Client from Portal
 
 on:
@@ -50,7 +49,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "Maseer Bot"
           git add data/clients.json logos/
-          git commit -m "🎯 New client: Issue #${{ github.event.issue.number || github.event.inputs.issue_number }}" || echo "No changes"
+          git commit -m "🎯 New client from Portal: Issue #${{ github.event.issue.number || github.event.inputs.issue_number }}" || echo "No changes"
           git push || echo "Nothing to push"
           
       - name: Trigger Video Generation
@@ -60,17 +59,18 @@ jobs:
           workflow: main.yml
           token: ${{ secrets.PAT_TOKEN }}
           
-      - name: Comment Success
+      - name: Comment Success on Issue
         if: steps.parse.outputs.updated == 'true'
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.PAT_TOKEN }}
           script: |
+            const brandName = '${{ steps.parse.outputs.brand_name }}';
             github.rest.issues.createComment({
               issue_number: context.issue.number || ${{ github.event.inputs.issue_number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `✅ **Client Registered!**\n\nYour video will be ready within 6 hours.\n\nTrack progress: [Actions](https://github.com/${{ github.repository }}/actions)`
+              body: `✅ **Welcome to Maseer, ${brandName}!**\n\nYour brand has been registered successfully.\n\n🎬 **Video Production**: Our AI is now crafting your professional marketing video\n⏱️ **Timeline**: Ready within 6 hours (next scheduled run)\n🎨 **Style**: Professional typography + smooth animations + branded graphics\n📤 **Delivery**: You'll receive the video via Telegram\n\n**Track Progress**: [View Workflow Runs](https://github.com/${{ github.repository }}/actions)\n\n*Powered by Ariana Coach | Kabul, Afghanistan*`
             });
             github.rest.issues.update({
               issue_number: context.issue.number || ${{ github.event.inputs.issue_number }},
