@@ -1,12 +1,12 @@
 ---
-name: New Client Registration
-about: Register a new brand for video marketing
+name: New Client Registration - Ariana Coach
+about: Register a new brand for AI video marketing
 title: "New Client: [Brand Name]"
 labels: [new-client, automated]
 assignees: ''
 ---
 
-## New Brand Registration
+## New Brand Registration - Ariana Coach
 
 **Submitted:** &lt;!-- Auto-filled --&gt;
 **Status:** &lt;!-- Standard or Urgent --&gt;
@@ -22,9 +22,9 @@ assignees: ''
 ### Visual Identity
 | Field | Value |
 |-------|-------|
-| **Primary Color** | &lt;!-- Hex code (e.g., #D32F2F) --&gt; |
-| **Secondary Color** | &lt;!-- Hex code (e.g., #FFC107) --&gt; |
-| **Logo URL** | &lt;!-- Direct image link --&gt; |
+| **Primary Color** | &lt;!-- Hex code (e.g., #6B21A8) --&gt; |
+| **Secondary Color** | &lt;!-- Hex code (e.g., #EAB308) --&gt; |
+| **Logo** | &lt;!-- Uploaded via Ariana Coach Portal --&gt; |
 
 ### Marketing Details
 | Field | Value |
