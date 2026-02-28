@@ -89,123 +89,180 @@ def create_animated_logo(logo_path, video_width, video_height, overlay_height, o
         return None
 
 
-def create_advanced_video_reel(image_path, text, output_path, client_data, motion='zoom_in'):
+def get_platform_specs(platform='instagram_feed'):
     """
-    Creates a premium 10-second video reel with dramatic Ken Burns animations.
+    Get optimal video specifications for Meta platforms.
     
-    Animation Specifications:
-    - Duration: 10 seconds
-    - FPS: 30 (smooth motion, standard for video)
-    - Zoom: 15-25% scale increase over duration
-    - Pan: 10-20% of image width/height
-    - Easing: Smooth interpolation for natural motion
+    Platforms:
+    - instagram_feed: 1:1 (1080x1080)
+    - instagram_story: 9:16 (1080x1920)
+    - instagram_reel: 9:16 (1080x1920), 30-90s
+    - facebook_feed: 1:1 or 4:5 recommended (1080x1080 or 1080x1350)
+    - facebook_story: 9:16 (1080x1920)
+    """
+    specs = {
+        'instagram_feed': {
+            'size': (1080, 1080),
+            'aspect_ratio': '1:1',
+            'fps': 30,
+            'bitrate': '6000k',
+            'max_duration': 60,
+            'format': 'mp4',
+            'safe_zone': {'top': 0.15, 'bottom': 0.20}  # Avoid UI overlays
+        },
+        'instagram_story': {
+            'size': (1080, 1920),
+            'aspect_ratio': '9:16',
+            'fps': 30,
+            'bitrate': '6000k',
+            'max_duration': 15,
+            'format': 'mp4',
+            'safe_zone': {'top': 0.25, 'bottom': 0.20}  # Avoid profile pic & CTA
+        },
+        'instagram_reel': {
+            'size': (1080, 1920),
+            'aspect_ratio': '9:16',
+            'fps': 30,
+            'bitrate': '8000k',
+            'max_duration': 90,
+            'format': 'mp4',
+            'safe_zone': {'top': 0.20, 'bottom': 0.25}  # Avoid caption & buttons
+        },
+        'facebook_feed': {
+            'size': (1080, 1350),  # 4:5 for max screen real estate
+            'aspect_ratio': '4:5',
+            'fps': 30,
+            'bitrate': '6000k',
+            'max_duration': 240,
+            'format': 'mp4',
+            'safe_zone': {'top': 0.10, 'bottom': 0.10}
+        },
+        'facebook_story': {
+            'size': (1080, 1920),
+            'aspect_ratio': '9:16',
+            'fps': 30,
+            'bitrate': '6000k',
+            'max_duration': 20,
+            'format': 'mp4',
+            'safe_zone': {'top': 0.20, 'bottom': 0.20}
+        }
+    }
+    
+    return specs.get(platform, specs['instagram_feed'])
+
+
+def create_meta_optimized_reel(image_path, text, output_path, client_data, 
+                                platform='instagram_feed', motion='zoom_in'):
+    """
+    Creates Meta-optimized video reels with dramatic Ken Burns animations.
+    
+    Supports: instagram_feed, instagram_story, instagram_reel, 
+              facebook_feed, facebook_story
     """
     try:
-        duration = 10
-        fps = 30  # Increased from 20 for smoother motion perception
-        display_text = prepare_persian_text(text)
+        # Get platform specifications
+        specs = get_platform_specs(platform)
+        target_w, target_h = specs['size']
+        fps = specs['fps']
+        bitrate = specs['bitrate']
+        safe_top = specs['safe_zone']['top']
+        safe_bottom = specs['safe_zone']['bottom']
         
+        # Duration: 10s default, but respect platform limits
+        duration = min(10, specs['max_duration'])
+        
+        display_text = prepare_persian_text(text)
         persian_font = get_available_persian_font()
+        print(f"   - Platform: {platform} ({specs['aspect_ratio']})")
+        print(f"   - Resolution: {target_w}x{target_h}")
         print(f"   - Using font: {persian_font}")
 
-        # Load background image
+        # Load and prepare background image
         bg_clip = ImageClip(image_path).set_duration(duration)
-        
-        # Calculate dimensions for animation math
         img_w, img_h = bg_clip.size
-        target_w, target_h = 1920, 1080  # Standard 1080p output
         
-        # Ensure image covers the frame with room to move
-        base_scale = max(target_w / img_w, target_h / img_h)
-        
+        # Calculate base scale to cover frame with room for motion
+        scale_w = target_w / img_w
+        scale_h = target_h / img_h
+        base_scale = max(scale_w, scale_h) * 1.15  # 15% extra for movement room
+
         # ============================================================
-        # DRAMATIC KEN BURNS EFFECT CONFIGURATION
+        # DRAMATIC KEN BURNS EFFECT (Optimized for mobile viewing)
         # ============================================================
         
         if motion == 'zoom_in':
-            # Start: Slightly zoomed out (95%), End: Zoomed in (125%)
-            # This creates a dramatic 30% scale change over 10 seconds
-            # Movement: Slow pan from left to center while zooming
             def calc_transform(t):
                 progress = t / duration
-                # Scale: 0.95 -> 1.25 (30% zoom)
-                scale = 0.95 + (0.30 * progress)
-                # Pan: Start 5% left, end centered
-                x_offset = -img_w * 0.05 * (1 - progress)
-                y_offset = -img_h * 0.02 * progress  # Slight vertical drift
+                # Dramatic 35% zoom for small screens
+                scale = 1.0 + (0.35 * progress)
+                # Subtle pan to keep subject in frame
+                x_offset = -img_w * 0.08 * progress
+                y_offset = -img_h * 0.05 * progress
                 return scale, x_offset, y_offset
                 
         elif motion == 'zoom_out':
-            # Reverse: Start zoomed in, pull back to reveal context
             def calc_transform(t):
                 progress = t / duration
-                scale = 1.25 - (0.30 * progress)  # 1.25 -> 0.95
-                x_offset = -img_w * 0.05 * progress
-                y_offset = -img_h * 0.02 * (1 - progress)
+                scale = 1.35 - (0.35 * progress)
+                x_offset = -img_w * 0.08 * (1 - progress)
+                y_offset = -img_h * 0.05 * (1 - progress)
                 return scale, x_offset, y_offset
                 
         elif motion == 'pan_right':
-            # Dramatic rightward pan with subtle zoom
             def calc_transform(t):
                 progress = t / duration
-                scale = 1.0 + (0.15 * progress)  # 15% zoom
-                # Pan from left to right (20% of image width)
-                x_offset = -img_w * 0.20 * progress
+                scale = 1.0 + (0.20 * progress)
+                # Strong horizontal movement
+                x_offset = -img_w * 0.25 * progress
                 y_offset = 0
                 return scale, x_offset, y_offset
                 
         elif motion == 'pan_left':
-            # Dramatic leftward pan with subtle zoom
             def calc_transform(t):
                 progress = t / duration
-                scale = 1.0 + (0.15 * progress)
-                x_offset = img_w * 0.20 * progress - img_w * 0.20
+                scale = 1.0 + (0.20 * progress)
+                x_offset = img_w * 0.25 * progress - img_w * 0.25
                 y_offset = 0
                 return scale, x_offset, y_offset
                 
         elif motion == 'pan_up':
-            # Vertical pan upward with zoom
-            def calc_transform(t):
-                progress = t / duration
-                scale = 1.0 + (0.15 * progress)
-                x_offset = 0
-                y_offset = -img_h * 0.15 * progress
-                return scale, x_offset, y_offset
-                
-        elif motion == 'pan_down':
-            # Vertical pan downward with zoom
-            def calc_transform(t):
-                progress = t / duration
-                scale = 1.0 + (0.15 * progress)
-                x_offset = 0
-                y_offset = img_h * 0.15 * progress - img_h * 0.15
-                return scale, x_offset, y_offset
-                
-        else:  # default: subtle zoom_in
             def calc_transform(t):
                 progress = t / duration
                 scale = 1.0 + (0.20 * progress)
-                x_offset = -img_w * 0.03 * progress
+                x_offset = 0
+                y_offset = -img_h * 0.20 * progress
+                return scale, x_offset, y_offset
+                
+        elif motion == 'pan_down':
+            def calc_transform(t):
+                progress = t / duration
+                scale = 1.0 + (0.20 * progress)
+                x_offset = 0
+                y_offset = img_h * 0.20 * progress - img_h * 0.20
+                return scale, x_offset, y_offset
+                
+        else:  # default zoom_in_slow
+            def calc_transform(t):
+                progress = t / duration
+                scale = 1.0 + (0.25 * progress)
+                x_offset = -img_w * 0.05 * progress
                 y_offset = 0
                 return scale, x_offset, y_offset
 
-        # Apply the transformation with smooth easing
-        def ease_in_out_quad(t):
-            """Smooth easing function for natural motion feel"""
+        # Smooth easing for natural motion
+        def ease_in_out_cubic(t):
             if t < 0.5:
-                return 2 * t * t
+                return 4 * t * t * t
             else:
-                return 1 - pow(-2 * t + 2, 2) / 2
+                return 1 - pow(-2 * t + 2, 3) / 2
 
         def get_frame_position(t):
-            progress = ease_in_out_quad(t / duration)
+            progress = ease_in_out_cubic(t / duration)
             scale, x_off, y_off = calc_transform(t)
             
-            # Calculate scaled dimensions
             new_w = img_w * scale * base_scale
             new_h = img_h * scale * base_scale
             
-            # Center the image and apply offset
             x = (target_w - new_w) / 2 + x_off * base_scale * scale
             y = (target_h - new_h) / 2 + y_off * base_scale * scale
             
@@ -215,25 +272,26 @@ def create_advanced_video_reel(image_path, text, output_path, client_data, motio
             scale, _, _ = calc_transform(t)
             return img_w * scale * base_scale, img_h * scale * base_scale
 
-        # Apply dynamic positioning and sizing
+        # Apply motion
         bg_clip = bg_clip.set_position(get_frame_position)
         bg_clip = bg_clip.resize(get_frame_size)
 
         primary_color = client_data.get('primary_color', '#D32F2F')
         secondary_color = client_data.get('secondary_color', '#FFC107')
 
-        # Dynamic font sizing
+        # Font sizing optimized for mobile readability
         text_length = len(text)
         if text_length <= 15:
-            fontsize = 90
+            fontsize = 80 if target_h >= 1920 else 70  # Larger for stories/reels
         elif text_length <= 25:
-            fontsize = 75
+            fontsize = 65 if target_h >= 1920 else 55
         else:
-            fontsize = 60
+            fontsize = 50 if target_h >= 1920 else 45
 
-        txt_width = int(target_w * 0.60)
+        # Text width: 85% for stories, 70% for feed
+        txt_width = int(target_w * (0.85 if target_h > target_w else 0.70))
 
-        # Calculate overlay dimensions first
+        # Calculate text dimensions
         temp_text = TextClip(
             display_text,
             fontsize=fontsize,
@@ -242,18 +300,25 @@ def create_advanced_video_reel(image_path, text, output_path, client_data, motio
             method='caption',
             size=(txt_width, None),
             align='center',
-            interline=-8
+            interline=-6
         )
         txt_w, txt_h = temp_text.size
         temp_text.close()
         
-        padding = 40
-        overlay_height = max(txt_h + (padding * 2), int(target_h * 0.18))
-        overlay_y_final = target_h - overlay_height - 60
+        # Overlay positioning with safe zones
+        padding = 30
+        overlay_height = max(txt_h + (padding * 2), int(target_h * 0.12))
+        
+        # Position overlay in safe zone (above bottom UI elements)
+        overlay_y_final = target_h - overlay_height - int(target_h * safe_bottom)
+        
+        # Ensure overlay doesn't overlap top safe zone
+        if overlay_y_final < int(target_h * safe_top):
+            overlay_y_final = int(target_h * safe_top) + 20
 
-        # Create main text with slide-up animation
+        # Text animation
         text_final_y = overlay_y_final + (overlay_height - txt_h) // 2
-        text_start_y = text_final_y + 50  # Start 50px lower for more dramatic entrance
+        text_start_y = text_final_y + 40
 
         txt_clip = (TextClip(
             display_text,
@@ -263,20 +328,18 @@ def create_advanced_video_reel(image_path, text, output_path, client_data, motio
             method='caption',
             size=(txt_width, None),
             align='center',
-            interline=-8
+            interline=-6
         )
         .set_duration(duration)
-        .set_start(0.3)  # Slightly earlier start
+        .set_start(0.2)
         .set_position(lambda t: (
-            int(target_w * 0.05),
-            text_start_y + (text_final_y - text_start_y) * min(max((t - 0.3) / 0.8, 0), 1)
+            (target_w - txt_w) // 2,  # Center horizontally
+            text_start_y + (text_final_y - text_start_y) * min(max((t - 0.2) / 0.7, 0), 1)
         ))
         )
-        
-        # Fade in text
-        txt_clip = txt_clip.fadein(0.4)
+        txt_clip = txt_clip.fadein(0.3)
 
-        # Create shadow for text
+        # Text shadow
         shadow_clip = (TextClip(
             display_text,
             fontsize=fontsize,
@@ -285,57 +348,47 @@ def create_advanced_video_reel(image_path, text, output_path, client_data, motio
             method='caption',
             size=(txt_width, None),
             align='center',
-            interline=-8
+            interline=-6
         )
         .set_duration(duration)
-        .set_start(0.3)
+        .set_start(0.2)
         .set_position(lambda t: (
-            int(target_w * 0.05) + 4,
-            (text_start_y + (text_final_y - text_start_y) * min(max((t - 0.3) / 0.8, 0), 1)) + 4
+            (target_w - txt_w) // 2 + 3,
+            (text_start_y + (text_final_y - text_start_y) * min(max((t - 0.2) / 0.7, 0), 1)) + 3
         ))
         )
-        shadow_clip = shadow_clip.set_opacity(0.4)
-        shadow_clip = shadow_clip.fadein(0.4)
+        shadow_clip = shadow_clip.set_opacity(0.5).fadein(0.3)
 
-        # Create animated color stripe (slide up from bottom)
-        overlay_y_start = target_h + 20
-
+        # Color stripe overlay
+        overlay_y_start = target_h + 10
         overlay = (ColorClip(
             size=(target_w, overlay_height),
             color=hex_to_rgb(primary_color)
         )
         .set_duration(duration)
-        .set_opacity(0.90)
+        .set_opacity(0.92)
         .set_position(lambda t: (
             'center',
-            overlay_y_start + (overlay_y_final - overlay_y_start) * min(t / 0.6, 1)
+            overlay_y_start + (overlay_y_final - overlay_y_start) * min(t / 0.5, 1)
         ))
         )
 
-        # Add top gradient for visual polish
-        gradient_height = 200
+        # Top gradient for depth
+        gradient_height = int(target_h * 0.15)
         top_gradient = (ColorClip(
             size=(target_w, gradient_height),
             color=(0, 0, 0)
         )
         .set_duration(duration)
-        .set_opacity(0.3)
+        .set_opacity(0.25)
         .set_position(('center', 0))
+        .fadein(0.4)
         )
-        
-        # Fade in gradient
-        top_gradient = top_gradient.fadein(0.5)
 
-        # Build composition layers (bottom to top)
-        layers = [
-            bg_clip,
-            top_gradient,
-            overlay,
-            shadow_clip,
-            txt_clip,
-        ]
+        # Build layers
+        layers = [bg_clip, top_gradient, overlay, shadow_clip, txt_clip]
 
-        # Add animated logo
+        # Add logo if available
         logo_path = client_data.get('logo_path')
         if logo_path and os.path.exists(logo_path):
             logo_clip = create_animated_logo(
@@ -345,10 +398,10 @@ def create_advanced_video_reel(image_path, text, output_path, client_data, motio
             if logo_clip:
                 layers.append(logo_clip)
 
-        # Compose final video with fixed output size
+        # Compose
         final_video = CompositeVideoClip(layers, size=(target_w, target_h))
 
-        # Export with high quality settings
+        # Export with platform-optimized settings
         final_video.write_videofile(
             output_path,
             fps=fps,
@@ -356,11 +409,17 @@ def create_advanced_video_reel(image_path, text, output_path, client_data, motio
             audio=False,
             logger=None,
             threads=4,
-            preset='medium',
-            bitrate='8000k'  # Increased bitrate for sharper motion
+            preset='slow',  # Better compression for mobile
+            bitrate=bitrate,
+            ffmpeg_params=[
+                '-pix_fmt', 'yuv420p',  # Universal compatibility
+                '-profile:v', 'high',
+                '-level', '4.0',
+                '-movflags', '+faststart'  # Web optimization
+            ]
         )
 
-        # Clean up
+        # Cleanup
         final_video.close()
         for layer in layers:
             try:
@@ -368,6 +427,7 @@ def create_advanced_video_reel(image_path, text, output_path, client_data, motio
             except:
                 pass
 
+        print(f"   ✓ Created {platform} video: {output_path}")
         return True
 
     except Exception as e:
@@ -375,3 +435,10 @@ def create_advanced_video_reel(image_path, text, output_path, client_data, motio
         import traceback
         traceback.print_exc()
         return False
+
+
+# Backward compatibility alias
+def create_advanced_video_reel(image_path, text, output_path, client_data, motion='zoom_in'):
+    """Legacy wrapper for Instagram Feed (1:1)"""
+    return create_meta_optimized_reel(image_path, text, output_path, client_data, 
+                                      platform='instagram_feed', motion=motion)
