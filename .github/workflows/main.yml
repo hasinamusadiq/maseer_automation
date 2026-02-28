@@ -20,10 +20,15 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick ghostscript fonts-dejavu fonts-freefont-ttf fonts-noto-core
+
       - name: Fix ImageMagick Policy
         run: |
-          sudo rm -f /etc/ImageMagick-6/policy.xml
-          sudo cat > /etc/ImageMagick-6/policy.xml << 'EOF'
+          sudo mkdir -p /etc/ImageMagick-6
+          sudo tee /etc/ImageMagick-6/policy.xml > /dev/null << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <policymap>
             <policy domain="resource" name="memory" value="256MiB"/>
@@ -43,17 +48,14 @@ jobs:
             <policy domain="coder" rights="read|write" pattern="EPHEMERAL" />
             <policy domain="coder" rights="read|write" pattern="URL" />
             <policy domain="coder" rights="read|write" pattern="HTTPS" />
-            <policy domain="coder" rights="read|write" pattern="DATA" />
             <policy domain="path" rights="read|write" pattern="@*" />
           </policymap>
           EOF
           echo "ImageMagick policy updated"
+          convert --version
 
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y imagemagick ghostscript fonts-dejavu fonts-freefont-ttf fonts-noto-core
-          pip install -r requirements.txt
+      - name: Install Python Dependencies
+        run: pip install -r requirements.txt
 
       - name: Run Script
         env:
