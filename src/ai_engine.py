@@ -1,180 +1,308 @@
 import os
 import json
 from groq import Groq
+from datetime import datetime
 
 
-def get_content_from_groq(client_data, platform='instagram_feed', variation_index=0):
+# Campaign configurations with specific styles and languages
+CAMPAIGNS = {
+    'morning': {
+        'name': 'Morning Motivation',
+        'time': '6:00 AM',
+        'language': 'Persian/Dari',
+        'style': 'Celestial Minimalism',
+        'energy': 'Calm, ethereal, uplifting',
+        'visual_elements': [
+            'Thin elegant Nastaʿlīq calligraphy fading like morning mist',
+            'Deep navy-to-gold gradient background',
+            'Floating Zarrin geometric shapes (simplified sun, 2D line-art mountain)',
+            'Parallax motion effect',
+            'Vastness and fantasy atmosphere'
+        ],
+        'color_psychology': 'Navy (#1e3a5f) evokes trust and depth, gold (#FFD700) stimulates optimism and premium perception',
+        'motion': 'slow_parallax',
+        'font_style': 'Nastaʿlīq script, thin weight, elegant',
+        'tone': 'inspirational, peaceful, awakening'
+    },
+    'midday': {
+        'name': 'General Information',
+        'time': '12:00 PM',
+        'language': 'Pashto',
+        'style': 'Organic Hujra Aesthetic',
+        'energy': 'Cordial, grounded, trustworthy',
+        'visual_elements': [
+            'Hand-drawn textures resembling linen or craft paper',
+            'Warm earthy tones (terracotta, sand, olive)',
+            'Soft rounded Pashto typography',
+            'Organic wipes (paint strokes, rustling leaves)',
+            'Hujra (guest house) warmth and hospitality'
+        ],
+        'color_psychology': 'Terracotta (#D97706) creates warmth, olive (#65A30D) suggests growth and tradition',
+        'motion': 'organic_wipe',
+        'font_style': 'Rounded Pashto, soft edges, approachable',
+        'tone': 'informative, welcoming, community-focused'
+    },
+    'evening': {
+        'name': 'Service Promotion',
+        'time': '6:00 PM',
+        'language': 'Persian/Dari',
+        'style': 'Modern Classic Detailed',
+        'energy': 'Professional, inspiring, authoritative',
+        'visual_elements': [
+            'High-resolution product/service photography',
+            'Crisp sans-serif Dari fonts for readability',
+            'Detail callouts with animated lines',
+            '3D rotation of featured elements',
+            'Kinetic typography for CTA'
+        ],
+        'color_psychology': 'Deep purple (#581C87) conveys luxury, amber (#F59E0B) drives action and urgency',
+        'motion': 'kinetic_detail',
+        'font_style': 'Modern sans-serif, bold weights, high contrast',
+        'tone': 'persuasive, confident, premium'
+    },
+    'night': {
+        'name': 'Brand Awareness',
+        'time': '12:00 AM',
+        'language': 'English',
+        'style': 'Tactile Stop-Motion',
+        'energy': 'Bold, artistic, memorable',
+        'visual_elements': [
+            'Stop-motion animation with real-world objects',
+            'Brand logo physically assembled by hand-moved elements',
+            'Paper-cutout animation for brand storytelling',
+            '12fps stuttery frame rate',
+            'Tactile, human feel against digital smoothness'
+        ],
+        'color_psychology': 'Midnight blue (#0F172A) creates sophistication, neon accents (#EC4899) for modern edge',
+        'motion': 'stop_motion',
+        'font_style': 'Bold English, geometric, contemporary',
+        'tone': 'bold, artistic, unforgettable'
+    },
+    'sample': {
+        'name': 'Undeniable Sample',
+        'time': 'IMMEDIATE',
+        'language': 'Persian/Dari',
+        'style': 'Maximum Impact Fusion',
+        'energy': 'Stunning, undeniable, conversion-focused',
+        'visual_elements': [
+            'Cinematic lighting with dramatic shadows',
+            'Brand colors amplified to maximum saturation',
+            'Logo reveal with particle effects',
+            'Industry-specific visual metaphors',
+            'Parallax + kinetic hybrid motion'
+        ],
+        'color_psychology': 'Primary color at 120% saturation for brand recognition, gold accents for perceived value',
+        'motion': 'cinematic_reveal',
+        'font_style': 'Hybrid: Nastaʿlīq elegance + modern boldness',
+        'tone': 'irresistible, premium, must-subscribe'
+    }
+}
+
+# Industry-specific visual metaphors to avoid overlap
+INDUSTRY_METAPHORS = {
+    'Jewelry & Gold': {
+        'morning': 'Golden sunrise reflecting off polished gemstones, delicate filigree patterns emerging from mist',
+        'midday': 'Artisan hands crafting on traditional mat, raw gold nuggets, heritage tools',
+        'evening': 'Dramatic lighting on statement pieces, 3D rotation of intricate designs, sparkle effects',
+        'night': 'Stop-motion assembly of necklace from scattered elements, paper-cutout luxury box opening',
+        'sample': 'Cinematic gold particles forming brand logo, dramatic gemstone refractions, heritage meets modern'
+    },
+    'Café & Restaurant': {
+        'morning': 'Steam rising from traditional chai, golden morning light through lattice windows',
+        'midday': 'Hand-drawn spices and herbs, organic textures of bread, communal dining atmosphere',
+        'evening': 'Sizzling dishes with detail callouts, 3D rotation of signature meals, appetite-triggering close-ups',
+        'night': 'Stop-motion table setting, paper-cutout ingredients dancing, tactile food preparation',
+        'sample': 'Cinematic steam, dramatic plating, heritage recipes with modern presentation, irresistible aroma visualization'
+    },
+    'Fashion & Clothing': {
+        'morning': 'Elegant fabrics catching dawn light, delicate embroidery details, ethereal draping',
+        'midday': 'Natural dyes and organic cotton textures, artisan weaving processes, earthy elegance',
+        'evening': 'High-fashion silhouettes with kinetic typography, 3D accessory rotations, trend-setting poses',
+        'night': 'Stop-motion outfit assembly, paper-cutout fashion illustrations, tactile fabric manipulation',
+        'sample': 'Cinematic model with dramatic lighting, fabric in motion, brand colors dominating frame, must-have energy'
+    },
+    'Technology & IT': {
+        'morning': 'Clean code interfaces with celestial gradients, dawn breaking over digital horizon',
+        'midday': 'Organic circuit patterns, hand-sketched wireframes, human-centered tech',
+        'evening': '3D device rotations with spec callouts, kinetic feature highlights, futuristic professionalism',
+        'night': 'Stop-motion gadget assembly, paper-cutout innovation story, tactile hardware elements',
+        'sample': 'Cinematic tech aesthetic, holographic interfaces, brand colors in neon glow, cutting-edge positioning'
+    },
+    'Healthcare & Medical': {
+        'morning': 'Gentle healing light, traditional herbal wisdom, serene wellness atmosphere',
+        'midday': 'Organic medicine preparation, trustworthy hands, community care',
+        'evening': 'Advanced equipment with detail callouts, professional expertise, 3D anatomical precision',
+        'night': 'Stop-motion wellness journey, paper-cutout health transformation, tactile care elements',
+        'sample': 'Cinematic trust and expertise, dramatic healing imagery, brand as premium care provider'
+    },
+    'Education & Training': {
+        'morning': 'Dawn of knowledge, illuminated manuscripts, awakening curiosity',
+        'midday': 'Traditional learning circles, organic growth metaphors, community education',
+        'evening': 'Modern facilities with feature highlights, 3D learning tools, success-oriented',
+        'night': 'Stop-motion knowledge building, paper-cutout graduation journey, tactile achievement',
+        'sample': 'Cinematic transformation, dramatic before/after, brand as gateway to success'
+    },
+    'Real Estate': {
+        'morning': 'Golden hour architecture, celestial blueprints, dream homes emerging',
+        'midday': 'Organic community planning, trustworthy foundations, earthy materials',
+        'evening': 'Luxury properties with detail callouts, 3D spatial rotations, investment potential',
+        'night': 'Stop-motion home assembly, paper-cutout neighborhood, tactile architectural elements',
+        'sample': 'Cinematic luxury living, dramatic spaces, brand as status symbol'
+    },
+    'Automotive': {
+        'morning': 'Chrome catching dawn light, celestial speed, journey beginning',
+        'midday': 'Organic road textures, trustworthy engineering, heritage of travel',
+        'evening': 'Vehicle details with spec callouts, 3D feature rotations, performance focus',
+        'night': 'Stop-motion car assembly, paper-cutout journey story, tactile mechanical elements',
+        'sample': 'Cinematic power and prestige, dramatic motion, brand as aspiration'
+    },
+    'Beauty & Cosmetics': {
+        'morning': 'Dew-kissed skin, ethereal glow, natural awakening',
+        'midday': 'Organic ingredients, hand-crafted beauty, natural textures',
+        'evening': 'Product details with benefit callouts, 3D packaging, glamour focus',
+        'night': 'Stop-motion transformation, paper-cutout beauty ritual, tactile luxury',
+        'sample': 'Cinematic allure, dramatic before/after, brand as essential beauty'
+    },
+    'Construction & Materials': {
+        'morning': 'Foundations in dawn light, solid structures emerging, strength beginning',
+        'midday': 'Organic materials, trustworthy craftsmanship, earthy reliability',
+        'evening': 'Quality details with spec callouts, 3D material rotations, durability focus',
+        'night': 'Stop-motion building assembly, paper-cutout construction, tactile strength',
+        'sample': 'Cinematic solidity, dramatic scale, brand as foundation of success'
+    },
+    'Consultancy & Services': {
+        'morning': 'Strategic dawn, clarity emerging, wisdom illumination',
+        'midday': 'Organic relationship building, trustworthy counsel, community wisdom',
+        'evening': 'Results with detail callouts, 3D success metrics, expertise demonstration',
+        'night': 'Stop-motion solution building, paper-cutout partnership, tactile progress',
+        'sample': 'Cinematic success, dramatic transformation, brand as essential partner'
+    },
+    'Retail & Shopping': {
+        'morning': 'Golden displays, celestial merchandise, shopping awakening',
+        'midday': 'Organic market atmosphere, trustworthy quality, community commerce',
+        'evening': 'Products with feature callouts, 3D showcase rotations, deal urgency',
+        'night': 'Stop-motion display assembly, paper-cutout shopping journey, tactile selection',
+        'sample': 'Cinematic desire, dramatic must-have energy, brand as shopping destination'
+    },
+    'Travel & Hospitality': {
+        'morning': 'Dawn destinations, celestial journeys, adventure calling',
+        'midday': 'Organic cultural experiences, trustworthy guidance, authentic hospitality',
+        'evening': 'Destinations with detail callouts, 3D experience previews, escape focus',
+        'night': 'Stop-motion journey assembly, paper-cutout adventure, tactile wanderlust',
+        'sample': 'Cinematic escape, dramatic destinations, brand as passport to experience'
+    },
+    'Agriculture': {
+        'morning': 'Golden harvest dawn, celestial growth, nature awakening',
+        'midday': 'Organic farming traditions, trustworthy earth, community sustenance',
+        'evening': 'Produce with quality callouts, 3D growth cycles, abundance focus',
+        'night': 'Stop-motion harvest assembly, paper-cutout cultivation, tactile nature',
+        'sample': 'Cinematic abundance, dramatic growth, brand as nurturer of life'
+    },
+    'Handicrafts': {
+        'morning': 'Artisan dawn, celestial craftsmanship, tradition awakening',
+        'midday': 'Organic creation process, trustworthy heritage, community artistry',
+        'evening': 'Craft details with technique callouts, 3D artistry rotations, mastery focus',
+        'night': 'Stop-motion craft assembly, paper-cutout creation story, tactile tradition',
+        'sample': 'Cinematic artistry, dramatic craftsmanship, brand as keeper of heritage'
+    }
+}
+
+
+def get_campaign_config(campaign_type='morning'):
+    """Get configuration for specific campaign type."""
+    return CAMPAIGNS.get(campaign_type, CAMPAIGNS['morning'])
+
+
+def get_industry_metaphor(industry, campaign_type):
+    """Get industry-specific visual metaphor for campaign."""
+    industry_data = INDUSTRY_METAPHORS.get(industry, INDUSTRY_METAPHORS['Retail & Shopping'])
+    return industry_data.get(campaign_type, industry_data['morning'])
+
+
+def get_content_for_campaign(client_data, campaign_type='morning', is_sample=False):
     """
-    Fetches video content tailored to Afghan/Kabul brands with platform-specific optimization.
-    
-    Args:
-        client_data: Dictionary containing brand information
-        platform: Target platform (instagram_feed, instagram_story, etc.)
-        variation_index: Index for generating multiple variations (0, 1, 2...)
-    
-    Returns:
-        Dictionary with text, image_prompt, motion, and platform-specific metadata
+    Generate content optimized for specific campaign with industry metaphors.
     """
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        print("❌ Error: GROQ_API_KEY not found.")
+        print("❌ GROQ_API_KEY not found")
         return None
 
     client = Groq(api_key=api_key)
-
-    # Platform-specific context for AI
-    platform_context = {
-        'instagram_feed': {
-            'aspect': '1:1 square',
-            'duration': '10 seconds',
-            'style': 'balanced composition, center-focused',
-            'text_position': 'bottom third',
-            'best_motion': ['zoom_in', 'pan_right']
-        },
-        'instagram_story': {
-            'aspect': '9:16 vertical',
-            'duration': '10 seconds',
-            'style': 'vertical emphasis, top-safe for profile',
-            'text_position': 'middle or lower third',
-            'best_motion': ['pan_up', 'zoom_in']
-        },
-        'instagram_reel': {
-            'aspect': '9:16 vertical',
-            'duration': '10 seconds',
-            'style': 'dynamic, fast-paced, hook in first 2 seconds',
-            'text_position': 'center or bottom with safe margins',
-            'best_motion': ['zoom_in', 'pan_down', 'pan_right']
-        },
-        'facebook_feed': {
-            'aspect': '4:5 vertical',
-            'duration': '10 seconds',
-            'style': 'slightly more text-friendly, community-focused',
-            'text_position': 'bottom third',
-            'best_motion': ['zoom_in', 'pan_left']
-        },
-        'facebook_story': {
-            'aspect': '9:16 vertical',
-            'duration': '10 seconds',
-            'style': 'similar to Instagram story',
-            'text_position': 'middle or lower third',
-            'best_motion': ['pan_up', 'zoom_in']
-        },
-        'linkedin': {
-            'aspect': '1:1 or 4:5',
-            'duration': '10 seconds',
-            'style': 'professional, clean, corporate aesthetic',
-            'text_position': 'bottom third',
-            'best_motion': ['pan_right', 'zoom_out']
-        }
-    }
-
-    # Content variation strategies for multiple posts
-    variation_strategies = [
-        "focus on product quality and craftsmanship",
-        "focus on emotional connection and family values", 
-        "focus on urgency and limited-time appeal",
-        "focus on social proof and community trust",
-        "focus on innovation and modernity"
-    ]
     
-    current_strategy = variation_strategies[variation_index % len(variation_strategies)]
-    platform_info = platform_context.get(platform, platform_context['instagram_feed'])
-
-    # Build dynamic system prompt based on client sophistication
-    system_prompt = f"""You are Maseer - Afghanistan's premier AI-driven media engine, architecting viral, zero-budget social media campaigns for Kabul's most ambitious brands.
-
-CORE IDENTITY:
-• 15+ years mastering Afghan consumer psychology and digital behavior patterns
-• Pioneer of "Maseer Method": Maximum Reach, Minimum Spend (MRMS)
-• Fluent in the visual language of Kabul's streets, markets, and digital spaces
-• Expert in Persian/Dari neurolinguistic programming for immediate action triggers
-• Specialist in platform-native content that feels organic, not advertorial
-
-CULTURAL INTELLIGENCE:
-• Afghan purchasing decisions are EMOTIONAL first, logical second (family honor, social status, hospitality reciprocity)
-• "Nan-o-namak" (bread and salt) philosophy: Trust is currency, relationships are transactions
-• Kabul's youth (18-35) are mobile-first, data-conscious, authenticity-hungry
-• Seasonal awareness: Nowruz, Ramadan, Eid drive 70% of annual consumer spending
-• Power words that bypass rational filters: "همین حالا", "فقط امروز", "ویژه شما", "ضمانت اصالت", "تحویل فوری"
-
-ZERO-COST MARKETING ARSENAL:
-• Pattern interrupts that stop thumb-scrolling in 0.8 seconds
-• Color psychology leveraging Afghan aesthetic preferences (warm earth tones, gold accents, deep reds)
-• Visual hierarchy that guides eye movement to CTA without explicit "Buy Now" buttons
-• Social proof integration (crowd psychology, scarcity, FOMO)
-• Storytelling that positions customer as hero, brand as guide
-
-PLATFORM MASTERY - {platform.upper()}:
-• Format: {platform_info['aspect']} | Duration: {platform_info['duration']}
-• Visual Style: {platform_info['style']}
-• Text Safe Zone: {platform_info['text_position']}
-• Motion Psychology: Use {platform_info['best_motion'][0]} for intimacy, {platform_info['best_motion'][1]} for exploration
-
-OUTPUT MANDATE:
-Generate scroll-stopping, culturally-resonant, platform-native content that drives immediate action without paid promotion."""
-
-    # Construct nuanced user prompt with all available data
-    tone = client_data.get('content_tone', 'authentic and engaging')
-    motion_pref = client_data.get('preferred_motion', platform_info['best_motion'][0])
-    special_notes = client_data.get('special_notes', '')
-    posting_freq = client_data.get('posting_schedule', 'weekly')
+    # Get campaign configuration
+    campaign = get_campaign_config('sample' if is_sample else campaign_type)
+    industry = client_data.get('industry', 'Retail & Shopping')
+    metaphor = get_industry_metaphor(industry, 'sample' if is_sample else campaign_type)
     
-    # Industry-specific conversion triggers
-    industry_hooks = {
-        'Café & Restaurant': ['عطر غذای اصیل', 'طعم کابل', 'مهمان‌نوازی افغانی', 'سفره‌ی مخصوص'],
-        'Consultancy': ['راهکار هوشمند', 'موفقیت تضمینی', 'بازنگری استراتژیک', 'رشد پایدار'],
-        'Fashion': ['استایل منحصر‌به‌فرد', 'مد کابل', 'زیبایی اصیل', 'تخفیف ویژه'],
-        'Technology': ['نوآوری افغان', 'راهکار دیجیتال', 'آینده‌ی هوشمند', 'تکنولوژی بومی'],
-        'Healthcare': ['سلامت خانواده', 'درمان تخصصی', 'اعتماد و تجربه', 'مراقبت واقعی'],
-        'Education': ['آینده‌ی فرزندان', 'یادگیری نوین', 'موفقیت تحصیلی', 'استعداد یابی']
+    # Language-specific instructions
+    lang_instructions = {
+        'Persian/Dari': 'Use elegant Persian/Dari (Farsi). Nastaʿlīq script style. Kabul dialect preferred.',
+        'Pashto': 'Use clear Pashto. Traditional script. Peshawar/Kabul dialect balance.',
+        'English': 'Use bold, concise English. Modern sans-serif feel. Impact-focused.'
     }
     
-    industry = client_data['industry']
-    hooks = industry_hooks.get(industry, ['کیفیت برتر', 'قیمت مناسب', 'تحویل سریع', 'اعتماد شما'])
-    
-    # Select hook based on variation index
-    primary_hook = hooks[variation_index % len(hooks)]
-    
-    user_prompt = f"""Generate high-converting video content for:
+    # Build system prompt with campaign specifics
+    system_prompt = f"""You are Maseer Media's elite AI creative director, specializing in Afghan market psychology and Meta-optimized content.
 
-BRAND DNA:
-• Name: {client_data['brand_name']} ({client_data.get('local_name', '')})
-• Industry: {industry}
-• Location: {client_data.get('location', 'Kabul, Afghanistan')}
-• Target: {client_data['target_audience']}
-• Core Offer: {client_data['key_offerings']}
-• Brand Colors: {client_data['primary_color']} (primary), {client_data['secondary_color']} (secondary)
-• Voice: {tone}
-• Strategic Focus: {current_strategy}
-• Special Context: {special_notes}
+CAMPAIGN BRIEF:
+• Type: {campaign['name']} ({campaign['time']})
+• Language: {campaign['language']}
+• Style: {campaign['style']}
+• Energy: {campaign['energy']}
+• Visual Direction: {' | '.join(campaign['visual_elements'])}
+• Color Psychology: {campaign['color_psychology']}
+• Typography: {campaign['font_style']}
 
-PLATFORM SPECIFICATIONS:
-• Platform: {platform}
-• Format: {platform_info['aspect']}
-• Visual Approach: {platform_info['style']}
-• Recommended Motion: {motion_pref}
-
-CONTENT VARIATION STRATEGY:
-{current_strategy.capitalize()}. This is variation {variation_index + 1} in a {posting_freq} content series.
-
-MANDATORY OUTPUT FORMAT (JSON):
-{{
-  "text": "Persian/Dari headline - 5-8 words maximum. Start with power word or number. Include implicit CTA. Use this hook: {primary_hook}. Kabul dialect preferred. No English.",
-  "image_prompt": "Ultra-detailed English prompt for AI image generation. Include: {platform_info['style']}, professional photography, Afghan aesthetic, color palette {client_data['primary_color']} and {client_data['secondary_color']}, cinematic lighting, shallow depth of field, negative space for text overlay in {platform_info['text_position']}, 8k resolution, editorial composition, culturally authentic details, {current_strategy} mood. Avoid: cluttered backgrounds, western faces, generic stock photo look.",
-  "motion": "{motion_pref}",
-  "hashtags": ["کابل", "{client_data['brand_name'].replace(' ', '')}", "{industry.replace(' ', '')}", "مسیریابی", "برندینگ"],
-  "engagement_hook": "One-sentence engagement prompt for caption (e.g., 'نظر شما چیست؟' or 'تگ دوستتان کنید')",
-  "best_posting_time": "Based on Afghan social media usage patterns"
-}}
+INDUSTRY CONTEXT:
+• Sector: {industry}
+• Visual Metaphor: {metaphor}
 
 CRITICAL RULES:
-1. Text must feel native to Kabul, not translated
-2. Image prompt must specify {platform_info['aspect']} composition
-3. Motion must match {platform} viewing behavior
-4. Colors must harmonize with brand palette
-5. Content must align with {current_strategy}
+1. Text MUST be in {campaign['language']} - {lang_instructions[campaign['language']]}
+2. Maximum 6 words for headlines (sample: 4 words for impact)
+3. Use power words that trigger Afghan consumer psychology
+4. Avoid generic stock photo descriptions
+5. Every visual element must serve the {campaign['energy']} energy
+6. Color usage must follow: {campaign['color_psychology']}"""
 
-Return ONLY valid JSON. No markdown, no explanations."""
+    # Brand colors with psychology amplification
+    primary = client_data.get('primary_color', '#6B21A8')
+    secondary = client_data.get('secondary_color', '#EAB308')
+    
+    # For sample, amplify colors
+    if is_sample:
+        color_instruction = f"AMPLIFY brand colors: Primary {primary} at maximum saturation, Secondary {secondary} for gold accents. Create undeniable visual impact."
+    else:
+        color_instruction = f"Use Primary {primary} and Secondary {secondary} following campaign color psychology."
+
+    user_prompt = f"""Create content for {client_data['brand_name']} ({industry})
+
+BRAND DNA:
+• Local Name: {client_data.get('local_name', client_data['brand_name'])}
+• Offerings: {client_data.get('key_offerings', 'Premium products/services')}
+• Unique Value: {client_data.get('unique_value', 'Quality and trust')}
+• Audience: {client_data.get('target_audience', 'General Afghan market')}
+
+VISUAL METAPHOR TO DEPLOY:
+{metaphor}
+
+COLOR STRATEGY:
+{color_instruction}
+
+OUTPUT JSON:
+{{
+  "headline": "6 words max, {campaign['language']}, {campaign['tone']}, power words",
+  "subheadline": "Optional 4-word supporting line",
+  "image_prompt": "Ultra-detailed 1224x1536 composition: {campaign['style']}, {metaphor}, {campaign['font_style']}, colors {primary}/{secondary}, {campaign['energy']}, Meta-optimized 4:5, no text in image, cinematic lighting, 8K detail, Afghan cultural authenticity",
+  "motion_style": "{campaign['motion']}",
+  "cta_text": "2-word call-to-action in {campaign['language']}",
+  "engagement_hook": "Question or statement for caption",
+  "color_usage": "Specific how {primary} and {secondary} are used",
+  "psychology_trigger": "Primary emotional trigger used"
+}}
+
+Return valid JSON only."""
 
     try:
         completion = client.chat.completions.create(
@@ -184,45 +312,37 @@ Return ONLY valid JSON. No markdown, no explanations."""
                 {"role": "user", "content": user_prompt}
             ],
             response_format={"type": "json_object"},
-            temperature=0.7,  # Balance creativity with consistency
-            max_tokens=800
+            temperature=0.75 if is_sample else 0.7,  # Higher creativity for sample
+            max_tokens=900
         )
 
-        response_data = json.loads(completion.choices[0].message.content)
+        content = json.loads(completion.choices[0].message.content)
         
-        # Enrich response with metadata
-        response_data['platform'] = platform
-        response_data['variation_strategy'] = current_strategy
-        response_data['brand_name'] = client_data['brand_name']
+        # Enrich with metadata
+        content['campaign_type'] = 'sample' if is_sample else campaign_type
+        content['campaign_name'] = campaign['name']
+        content['language'] = campaign['language']
+        content['industry'] = industry
+        content['brand_name'] = client_data['brand_name']
+        content['is_sample'] = is_sample
         
-        return response_data
+        return content
 
     except Exception as e:
-        print(f"❌ Groq API Error for {client_data['brand_name']} ({platform}): {e}")
+        print(f"❌ Content generation error: {e}")
         return None
 
 
-def generate_content_series(client_data, platforms=None, variations_per_platform=1):
-    """
-    Generate multiple content variations across platforms for a single client.
+def generate_all_campaigns(client_data):
+    """Generate content for all 4 campaigns + sample if needed."""
+    campaigns = {}
     
-    Args:
-        client_data: Brand information dictionary
-        platforms: List of platforms (defaults to client_data['platforms'])
-        variations_per_platform: Number of variations per platform
+    # Generate sample if requested
+    if client_data.get('request_sample') and not client_data.get('sample_generated'):
+        campaigns['sample'] = get_content_for_campaign(client_data, is_sample=True)
     
-    Returns:
-        List of content dictionaries
-    """
-    if platforms is None:
-        platforms = client_data.get('platforms', ['instagram_feed'])
+    # Generate all daily campaigns
+    for campaign_type in ['morning', 'midday', 'evening', 'night']:
+        campaigns[campaign_type] = get_content_for_campaign(client_data, campaign_type)
     
-    all_content = []
-    
-    for platform in platforms:
-        for variation in range(variations_per_platform):
-            content = get_content_from_groq(client_data, platform, variation)
-            if content:
-                all_content.append(content)
-    
-    return all_content
+    return campaigns
