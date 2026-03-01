@@ -1,0 +1,110 @@
+name: 🎯 New Client Registration
+description: Register your Afghan brand for AI video marketing
+title: "New Client: [Brand Name]"
+labels: ["new-client"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🎬 Maseer Media - AI Video Marketing
+        
+        Complete this form to get your **free sample video** in 3 minutes.
+        - **Resolution:** 1224×1536 (Meta-optimized)
+        - **4 Daily Campaigns:** Morning, Midday, Evening, Night
+        
+  - type: input
+    id: brand_name
+    attributes:
+      label: Brand Name (English)
+      description: Your brand name in English
+      placeholder: e.g., Zarrin Jewelry
+    validations:
+      required: true
+      
+  - type: input
+    id: local_name
+    attributes:
+      label: Brand Name (Local)
+      description: Your brand name in Dari/Pashto (optional)
+      placeholder: e.g., زرین جواهرات
+      
+  - type: dropdown
+    id: industry
+    attributes:
+      label: Industry
+      description: Select your business category
+      options:
+        - Jewelry & Gold
+        - Café & Restaurant
+        - Fashion & Clothing
+        - Technology & IT
+        - Healthcare & Medical
+        - Education & Training
+        - Real Estate
+        - Automotive
+        - Beauty & Cosmetics
+        - Construction & Materials
+        - Consultancy & Services
+        - Retail & Shopping
+        - Travel & Hospitality
+        - Agriculture
+        - Handicrafts
+    validations:
+      required: true
+      
+  - type: input
+    id: primary_color
+    attributes:
+      label: Primary Brand Color
+      description: Hex color code (e.g., #6B21A8)
+      placeholder: "#6B21A8"
+      value: "#6B21A8"
+    validations:
+      required: true
+      
+  - type: input
+    id: secondary_color
+    attributes:
+      label: Secondary Brand Color
+      description: Hex color code (optional)
+      placeholder: "#EAB308"
+      value: "#EAB308"
+      
+  - type: textarea
+    id: target_audience
+    attributes:
+      label: Target Audience
+      description: Who are your customers?
+      placeholder: e.g., Affluent women 25-45 in Kabul
+      
+  - type: textarea
+    id: key_offerings
+    attributes:
+      label: Key Products/Services
+      description: What makes your brand special?
+      placeholder: e.g., Handmade 24K gold jewelry with Afghan designs
+      
+  - type: input
+    id: contact_info
+    attributes:
+      label: WhatsApp Number (for video delivery)
+      description: Include country code (+93)
+      placeholder: "+93 70 123 4567"
+      
+  - type: markdown
+    attributes:
+      value: |
+        ### 📎 Logo Upload
+        **Important:** After submitting this form, reply to the created issue with your logo image attached.
+        
+        Supported formats: PNG (preferred), JPG, SVG
+        
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Confirmation
+      options:
+        - label: I want to receive daily AI marketing videos (4 videos/day)
+          required: true
+        - label: I understand my sample will be ready in ~3 minutes
+          required: true
