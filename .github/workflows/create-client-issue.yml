@@ -3,16 +3,69 @@ name: Create Client Issue
 on:
   workflow_dispatch:
     inputs:
-      brand_name: { required: true, type: string }
-      local_name: { required: false, type: string }
-      industry: { required: true, type: string }
-      primary_color: { required: true, type: string }
-      secondary_color: { required: false, type: string }
-      target_audience: { required: false, type: string }
-      key_offerings: { required: false, type: string }
-      contact_info: { required: false, type: string }
-      logo_base64: { required: false, type: string }
-      language: { required: false, type: string, default: 'en' }
+      brand_name:
+        description: 'Brand Name'
+        required: true
+        type: string
+      local_name:
+        description: 'Local Name (optional)'
+        required: false
+        type: string
+      industry:
+        description: 'Industry'
+        required: true
+        type: choice
+        options:
+          - Jewelry & Gold
+          - Café & Restaurant
+          - Fashion & Clothing
+          - Technology & IT
+          - Healthcare & Medical
+          - Education & Training
+          - Real Estate
+          - Automotive
+          - Beauty & Cosmetics
+          - Construction & Materials
+          - Consultancy & Services
+          - Retail & Shopping
+          - Travel & Hospitality
+          - Agriculture
+          - Handicrafts
+      primary_color:
+        description: 'Primary Color (hex)'
+        required: true
+        type: string
+        default: '#6B21A8'
+      secondary_color:
+        description: 'Secondary Color (hex, optional)'
+        required: false
+        type: string
+        default: '#EAB308'
+      target_audience:
+        description: 'Target Audience (optional)'
+        required: false
+        type: string
+      key_offerings:
+        description: 'Key Offerings (optional)'
+        required: false
+        type: string
+      contact_info:
+        description: 'Contact/WhatsApp (optional)'
+        required: false
+        type: string
+      logo_base64:
+        description: 'Logo Base64 (paste if large, optional)'
+        required: false
+        type: string
+      language:
+        description: 'Language'
+        required: false
+        type: choice
+        options:
+          - en
+          - fa
+          - ps
+        default: 'en'
 
 jobs:
   create-issue:
@@ -23,6 +76,9 @@ jobs:
         with:
           github-token: ${{ secrets.PAT_TOKEN_MASEER }}
           script: |
+            const fs = require('fs');
+            
+            // Build issue body
             const issueBody = `---
 name: New Client Registration
 about: Register a new brand for AI video marketing
@@ -48,7 +104,7 @@ labels: [new-client]
 |-------|-------|
 | **Primary Color** | ${{ github.event.inputs.primary_color }} |
 | **Secondary Color** | ${{ github.event.inputs.secondary_color || '#EAB308' }} |
-| **Logo** | ${{ github.event.inputs.logo_base64 ? 'Included' : 'None' }} |
+| **Logo** | ${{ github.event.inputs.logo_base64 ? 'Included (see JSON below)' : 'None' }} |
 
 ### Marketing Details
 | Field | Value |
@@ -74,13 +130,18 @@ labels: [new-client]
 }
 \`\`\``;
 
-            const result = await github.rest.issues.create({
-              owner: 'hasinamusadiq',
-              repo: 'maseer_automation',
-              title: `New Client: ${{ github.event.inputs.brand_name }}`,
-              body: issueBody,
-              labels: ['new-client']
-            });
-            
-            console.log(`Created issue #${result.data.number}`);
-            return result.data.number;
+            try {
+              const result = await github.rest.issues.create({
+                owner: 'hasinamusadiq',
+                repo: 'maseer_automation',
+                title: `New Client: ${{ github.event.inputs.brand_name }}`,
+                body: issueBody,
+                labels: ['new-client']
+              });
+              
+              console.log(`✅ Created issue #${result.data.number}`);
+              core.setOutput('issue_number', result.data.number);
+              
+            } catch (error) {
+              core.setFailed(`Failed to create issue: ${error.message}`);
+            }
