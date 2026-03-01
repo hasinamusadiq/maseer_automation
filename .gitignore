@@ -4,26 +4,14 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
+dist/
+build/
 
 # Virtual Environment
 venv/
-ENV/
 env/
+ENV/
 
 # IDE
 .vscode/
@@ -35,20 +23,27 @@ env/
 .env
 .env.local
 
-# Generated Content
-output/*.mp4
-logos/*.png
-*.mp4
-*.png
-!assets/*.png
+# Data files (keep structure with .gitkeep)
+data/*
+!data/.gitkeep
 
-# Data backups
-data/*.bak
+# Generated content (keep structure)
+output/*
+!output/.gitkeep
+logos/*
+!logos/.gitkeep
 
-# Temporary Files
+# Temporary files
 *.log
+*.tmp
+temp_*.png
 .DS_Store
 Thumbs.db
 
-# Model Cache
+# Model cache
 .cache/
+models/
+
+# Test outputs
+test_*.mp4
+*_test.mp4
