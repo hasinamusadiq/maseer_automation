@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Parse GitHub Issue and add client to database.
-Located at: .github/scripts/update_clients.py
+Parse GitHub Issue and add client with 1224×1536 Meta specs.
 """
 
 import json
@@ -12,65 +11,54 @@ import requests
 import base64
 from datetime import datetime
 
-# Calculate paths - we are in .github/scripts/, repo root is 2 levels up
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-GITHUB_DIR = os.path.dirname(SCRIPT_DIR)
-REPO_ROOT = os.path.dirname(GITHUB_DIR)
 
-# Set paths relative to repo root
-DATA_DIR = os.path.join(REPO_ROOT, 'data')
-LOGOS_DIR = os.path.join(REPO_ROOT, 'logos')
-
-print(f"📁 Working directories:")
-print(f"   Script: {SCRIPT_DIR}")
-print(f"   Repo root: {REPO_ROOT}")
-print(f"   Data: {DATA_DIR}")
-print(f"   Logos: {LOGOS_DIR}")
+META_SPECS = {
+    "width": 1224,
+    "height": 1536,
+    "aspect_ratio": "4:5",
+    "platforms": ["instagram_feed", "instagram_story", "facebook_feed"],
+    "optimal_for": "Meta advertising with maximum screen real estate"
+}
 
 
 def save_base64_logo(base64_data, brand_name):
-    """Save base64-encoded logo."""
+    """Save base64 logo."""
     try:
         if ',' in base64_data:
-            header, base64_data = base64_data.split(',', 1)
+            _, base64_data = base64_data.split(',', 1)
         
         logo_bytes = base64.b64decode(base64_data)
+        safe_name = re.sub(r'[^\w\s-]', '', brand_name).strip().replace(' ', '_')
+        logo_path = f'logos/{safe_name}_logo.png'
         
-        # Clean filename
-        safe_name = re.sub(r'[^\w\s-]', '', brand_name).replace(' ', '_')
-        logo_path = os.path.join(LOGOS_DIR, f'{safe_name}_logo.png')
-        
-        os.makedirs(LOGOS_DIR, exist_ok=True)
+        os.makedirs('logos', exist_ok=True)
         
         with open(logo_path, 'wb') as f:
             f.write(logo_bytes)
         
-        print(f"   ✅ Logo saved: {logo_path} ({len(logo_bytes)} bytes)")
+        print(f"   ✅ Logo: {logo_path} ({len(logo_bytes)} bytes)")
         return logo_path
         
     except Exception as e:
-        print(f"   ⚠️ Error saving logo: {e}")
+        print(f"   ⚠️ Logo error: {e}")
         return None
 
 
-def parse_issue_body(body):
-    """Extract client data from issue body."""
-    client_data = {}
+def parse_issue(body):
+    """Extract client data from issue."""
+    client = {}
     
     if not body:
-        print("❌ Error: Empty issue body")
-        return client_data
+        return client
     
-    lines = body.split('\n')
-    
-    # Parse table rows
-    for line in lines:
+    # Parse markdown tables
+    for line in body.split('\n'):
         match = re.match(r'\|\s*\*\*(.+?)\*\*\s*\|\s*(.+?)\s*\|', line)
         if match:
             field = match.group(1).lower().replace(' ', '_')
-            value = match.group(2).strip()
+            value = re.sub(r'<!--.*?-->', '', match.group(2)).strip()
             
-            field_mapping = {
+            mapping = {
                 'brand_name': 'brand_name',
                 'local_name': 'local_name',
                 'industry': 'industry',
@@ -79,160 +67,163 @@ def parse_issue_body(body):
                 'secondary_color': 'secondary_color',
                 'target_audience': 'target_audience',
                 'key_offerings': 'key_offerings',
-                'contact_info': 'contact_info'
+                'unique_value': 'unique_value',
+                'contact': 'contact_info'
             }
             
-            if field in field_mapping:
-                # Clean up value
-                clean_value = re.sub(r'<!--.*?-->', '', value).strip()
-                clean_value = clean_value.replace('`', '').strip()
-                client_data[field_mapping[field]] = clean_value
+            if field in mapping and value and value != '-':
+                client[mapping[field]] = value
     
-    # Extract JSON block
+    # Parse JSON block
     json_match = re.search(r'```json\s*(.+?)\s*```', body, re.DOTALL)
     if json_match:
         try:
-            json_data = json.loads(json_match.group(1))
+            data = json.loads(json_match.group(1))
             
             # Handle logo
-            logo_base64 = json_data.get('logo_base64')
-            if logo_base64 and len(str(logo_base64)) > 100:
-                print(f"   📸 Found base64 logo ({len(str(logo_base64))} chars)")
-                saved_path = save_base64_logo(logo_base64, client_data.get('brand_name', 'unknown'))
-                if saved_path:
-                    client_data['logo_path'] = saved_path
+            logo_b64 = data.get('logo_base64')
+            logo_url = data.get('logo_url')
+            
+            if logo_b64 and len(logo_b64) > 100:
+                saved = save_base64_logo(logo_b64, client.get('brand_name', 'unknown'))
+                if saved:
+                    client['logo_path'] = saved
+            elif logo_url and logo_url.startswith('http'):
+                client['logo_path'] = logo_url
+            
+            # Check for sample request
+            if data.get('request_sample'):
+                client['request_sample'] = True
             
             # Merge other fields
-            for key, value in json_data.items():
-                if key not in ['logo_base64'] and key not in client_data:
-                    client_data[key] = value
-                    
+            for k, v in data.items():
+                if k not in ['logo_base64', 'logo_url', 'request_sample']:
+                    if k not in client:
+                        client[k] = v
+                        
         except json.JSONDecodeError as e:
             print(f"   ⚠️ JSON parse error: {e}")
     
-    # Defaults
-    client_data.setdefault('language', 'Persian')
-    client_data.setdefault('location', 'Kabul, Afghanistan')
-    client_data.setdefault('platforms', ['instagram_feed', 'instagram_story'])
-    client_data.setdefault('signup_date', datetime.now().isoformat())
+    # Add Meta specs
+    client['meta_specs'] = META_SPECS
+    client['signup_date'] = datetime.now().isoformat()
+    client['campaigns_completed'] = []
+    client['sample_generated'] = False
+    client['total_videos'] = 0
     
-    return client_data
+    return client
 
 
-def validate_client_data(data):
+def validate(client):
     """Validate required fields."""
     required = ['brand_name', 'industry', 'primary_color']
-    missing = [f for f in required if not data.get(f)]
+    missing = [f for f in required if not client.get(f)]
     
     if missing:
-        print(f"❌ Missing required fields: {missing}")
+        print(f"❌ Missing: {missing}")
         return False
+    
+    # Validate hex
+    color = client.get('primary_color', '')
+    if not re.match(r'^#[0-9A-Fa-f]{6}$', color):
+        if not color.startswith('#'):
+            client['primary_color'] = f"#{color}"
     
     return True
 
 
-def add_to_clients_json(client_data):
-    """Add client to database."""
-    os.makedirs(DATA_DIR, exist_ok=True)
-    clients_file = os.path.join(DATA_DIR, 'clients.json')
+def save_client(client):
+    """Save to clients.json."""
+    path = 'data/clients.json'
     
-    # Load existing
     try:
-        with open(clients_file, 'r', encoding='utf-8') as f:
+        with open(path, 'r') as f:
             clients = json.load(f)
-        if not isinstance(clients, list):
-            clients = []
-    except (FileNotFoundError, json.JSONDecodeError):
+    except:
         clients = []
-        print(f"   ℹ️ Creating new clients.json")
+        os.makedirs('data', exist_ok=True)
     
-    # Check for duplicate
-    exists = any(c.get('brand_name') == client_data['brand_name'] for c in clients if isinstance(c, dict))
+    # Update existing or append
+    existing = None
+    for i, c in enumerate(clients):
+        if c.get('brand_name', '').lower() == client['brand_name'].lower():
+            existing = i
+            break
     
-    if exists:
-        print(f"   📝 Updating existing client: {client_data['brand_name']}")
-        # Remove old entry
-        clients = [c for c in clients if c.get('brand_name') != client_data['brand_name']]
+    if existing is not None:
+        # Preserve history
+        client['signup_history'] = clients[existing].get('signup_history', [])
+        client['signup_history'].append({
+            'date': clients[existing].get('signup_date'),
+            'data': {k: v for k, v in clients[existing].items() if k != 'signup_history'}
+        })
+        clients[existing] = client
+        print(f"   🔄 Updated: {client['brand_name']}")
+    else:
+        clients.append(client)
+        print(f"   ✨ New: {client['brand_name']}")
     
-    clients.append(client_data)
-    print(f"   ✅ Added client: {client_data['brand_name']}")
-    
-    # Save
-    with open(clients_file, 'w', encoding='utf-8') as f:
+    with open(path, 'w') as f:
         json.dump(clients, f, indent=2, ensure_ascii=False)
     
     return True
 
 
-def fetch_issue(issue_number, token, owner, repo):
-    """Fetch issue from GitHub API."""
-    if not token:
-        print("❌ No GitHub token")
-        return None
-    
+def fetch_issue(number, token, owner, repo):
+    """Fetch from GitHub API."""
+    url = f'https://api.github.com/repos/{owner}/{repo}/issues/{number}'
     headers = {
         'Authorization': f'Bearer {token}',
         'Accept': 'application/vnd.github.v3+json'
     }
     
-    url = f'https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}'
-    
     try:
-        response = requests.get(url, headers=headers, timeout=30)
-        if response.status_code == 200:
-            return response.json()
-        print(f"❌ API error: {response.status_code}")
-        return None
+        r = requests.get(url, headers=headers, timeout=30)
+        return r.json() if r.status_code == 200 else None
     except Exception as e:
-        print(f"❌ Request failed: {e}")
+        print(f"❌ API error: {e}")
         return None
 
 
 def main():
-    # Get environment variables
-    issue_number = os.getenv('ISSUE_NUMBER')
-    token = os.getenv('GITHUB_TOKEN')
+    issue_num = os.getenv('ISSUE_NUMBER')
+    token = os.getenv('GITHUB_TOKEN') or os.getenv('PAT_TOKEN')
     owner = os.getenv('REPO_OWNER') or os.getenv('GITHUB_REPOSITORY_OWNER')
     repo = os.getenv('REPO_NAME') or os.getenv('GITHUB_REPOSITORY', '').split('/')[-1]
     
-    print(f"🔍 Configuration:")
-    print(f"   Issue: #{issue_number}")
-    print(f"   Repo: {owner}/{repo}")
-    print(f"   Token: {'✅' if token else '❌'}")
-    
-    if not issue_number or not token:
-        print("❌ Missing required variables")
+    if not issue_num or not token:
+        print("❌ Missing ISSUE_NUMBER or token")
         sys.exit(1)
     
-    # Fetch issue
-    issue = fetch_issue(issue_number, token, owner, repo)
+    print(f"Processing Issue #{issue_num} in {owner}/{repo}")
+    
+    issue = fetch_issue(issue_num, token, owner, repo)
     if not issue:
         sys.exit(1)
     
-    print(f"\n📋 Issue: {issue.get('title')}")
+    print(f"Title: {issue.get('title', 'Unknown')}")
     
-    # Parse
-    body = issue.get('body', '')
-    client_data = parse_issue_body(body)
+    client = parse_issue(issue.get('body', ''))
     
-    print(f"\n📊 Parsed: {json.dumps(client_data, indent=2, ensure_ascii=False)}")
-    
-    # Validate
-    if not validate_client_data(client_data):
+    if not validate(client):
+        # Output failure
+        output = os.environ.get('GITHUB_OUTPUT')
+        if output:
+            with open(output, 'a') as f:
+                f.write("updated=false\n")
         sys.exit(1)
     
-    # Save
-    if add_to_clients_json(client_data):
-        # Set output for GitHub Actions
-        github_output = os.getenv('GITHUB_OUTPUT')
-        if github_output:
-            with open(github_output, 'a') as f:
-                f.write(f"updated=true\n")
-                f.write(f"brand_name={client_data['brand_name']}\n")
-        print("\n🎉 Success!")
-        return True
-    
-    sys.exit(1)
+    if save_client(client):
+        # Output success
+        output = os.environ.get('GITHUB_OUTPUT')
+        if output:
+            with open(output, 'a') as f:
+                f.write("updated=true\n")
+                f.write(f"brand_name={client['brand_name']}\n")
+                f.write(f"request_sample={'true' if client.get('request_sample') else 'false'}\n")
+        print(f"\n✅ {client['brand_name']} ready for 1224×1536 campaigns")
+    else:
+        sys.exit(1)
 
 
 if __name__ == '__main__':
