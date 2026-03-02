@@ -51,10 +51,20 @@ jobs:
             ghostscript \
             fonts-dejavu \
             fonts-freefont-ttf \
-            fonts-noto-core \
-            fonts-noto-arabic \
+            fonts-noto \
             ffmpeg \
-            libimagequant-dev
+            libimagequant-dev \
+            wget
+
+      - name: Download Noto Arabic Fonts
+        run: |
+          mkdir -p ~/.fonts
+          cd ~/.fonts
+          wget -q "https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoNaskhArabic/NotoNaskhArabic-Regular.ttf" || true
+          wget -q "https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoNaskhArabic/NotoNaskhArabic-Bold.ttf" || true
+          wget -q "https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSansArabic/NotoSansArabic-Regular.ttf" || true
+          fc-cache -f || true
+          echo "Fonts downloaded"
 
       - name: Configure ImageMagick
         run: |
