@@ -76,70 +76,72 @@ jobs:
         with:
           github-token: ${{ secrets.PAT_TOKEN_MASEER }}
           script: |
-            const issueBody = `---
-name: New Client Registration
-about: Register a new brand for AI video marketing
-title: "New Client: ${{ github.event.inputs.brand_name }}"
-labels: [new-client]
----
-
-## New Brand Registration - Maseer Media Inc.
-
-**Submitted:** ${new Date().toISOString()}
-**Status:** Standard
-
-### Brand Information
-| Field | Value |
-|-------|-------|
-| **Brand Name** | ${{ github.event.inputs.brand_name }} |
-| **Local Name** | ${{ github.event.inputs.local_name || 'N/A' }} |
-| **Industry** | ${{ github.event.inputs.industry }} |
-| **Location** | Kabul, Afghanistan |
-
-### Visual Identity
-| Field | Value |
-|-------|-------|
-| **Primary Color** | ${{ github.event.inputs.primary_color }} |
-| **Secondary Color** | ${{ github.event.inputs.secondary_color || '#EAB308' }} |
-| **Logo** | ${{ github.event.inputs.logo_base64 ? 'Included (see JSON below)' : 'None' }} |
-
-### Marketing Details
-| Field | Value |
-|-------|-------|
-| **Target Audience** | ${{ github.event.inputs.target_audience || 'General Afghan market' }} |
-| **Key Offerings** | ${{ github.event.inputs.key_offerings || 'Premium products/services' }} |
-| **Contact** | ${{ github.event.inputs.contact_info || 'N/A' }} |
-
-### Raw Data (JSON)
-\`\`\`json
-{
-  "brand_name": "${{ github.event.inputs.brand_name }}",
-  "local_name": "${{ github.event.inputs.local_name }}",
-  "industry": "${{ github.event.inputs.industry }}",
-  "primary_color": "${{ github.event.inputs.primary_color }}",
-  "secondary_color": "${{ github.event.inputs.secondary_color }}",
-  "target_audience": "${{ github.event.inputs.target_audience }}",
-  "key_offerings": "${{ github.event.inputs.key_offerings }}",
-  "contact_info": "${{ github.event.inputs.contact_info }}",
-  "logo_base64": "${{ github.event.inputs.logo_base64 }}",
-  "language": "${{ github.event.inputs.language }}",
-  "request_sample": true
-}
-\`\`\``;
+            const issueBody = [
+              '---',
+              'name: New Client Registration',
+              'about: Register a new brand for AI video marketing',
+              'title: "New Client: ${{ github.event.inputs.brand_name }}"',
+              'labels: [new-client]',
+              '---',
+              '',
+              '## New Brand Registration - Maseer Media Inc.',
+              '',
+              '**Submitted:** ' + new Date().toISOString(),
+              '**Status:** Standard',
+              '',
+              '### Brand Information',
+              '| Field | Value |',
+              '|-------|-------|',
+              '| **Brand Name** | ${{ github.event.inputs.brand_name }} |',
+              '| **Local Name** | ${{ github.event.inputs.local_name || ' + "'N/A'" + ' }} |',
+              '| **Industry** | ${{ github.event.inputs.industry }} |',
+              '| **Location** | Kabul, Afghanistan |',
+              '',
+              '### Visual Identity',
+              '| Field | Value |',
+              '|-------|-------|',
+              '| **Primary Color** | ${{ github.event.inputs.primary_color }} |',
+              '| **Secondary Color** | ${{ github.event.inputs.secondary_color || ' + "'#EAB308'" + ' }} |',
+              '| **Logo** | ${{ github.event.inputs.logo_base64 ? ' + "'Included (see JSON below)'" + ' : ' + "'None'" + ' }} |',
+              '',
+              '### Marketing Details',
+              '| Field | Value |',
+              '|-------|-------|',
+              '| **Target Audience** | ${{ github.event.inputs.target_audience || ' + "'General Afghan market'" + ' }} |',
+              '| **Key Offerings** | ${{ github.event.inputs.key_offerings || ' + "'Premium products/services'" + ' }} |',
+              '| **Contact** | ${{ github.event.inputs.contact_info || ' + "'N/A'" + ' }} |',
+              '',
+              '### Raw Data (JSON)',
+              '```json',
+              '{',
+              '  "brand_name": "${{ github.event.inputs.brand_name }}",',
+              '  "local_name": "${{ github.event.inputs.local_name }}",',
+              '  "industry": "${{ github.event.inputs.industry }}",',
+              '  "primary_color": "${{ github.event.inputs.primary_color }}",',
+              '  "secondary_color": "${{ github.event.inputs.secondary_color }}",',
+              '  "target_audience": "${{ github.event.inputs.target_audience }}",',
+              '  "key_offerings": "${{ github.event.inputs.key_offerings }}",',
+              '  "contact_info": "${{ github.event.inputs.contact_info }}",',
+              '  "logo_base64": "${{ github.event.inputs.logo_base64 }}",',
+              '  "language": "${{ github.event.inputs.language }}",',
+              '  "request_sample": true',
+              '}',
+              '```'
+            ].join('\n');
 
             try {
               const result = await github.rest.issues.create({
                 owner: 'hasinamusadiq',
                 repo: 'maseer_automation',
-                title: `New Client: ${{ github.event.inputs.brand_name }}`,
+                title: 'New Client: ${{ github.event.inputs.brand_name }}',
                 body: issueBody,
                 labels: ['new-client']
               });
               
-              console.log(`✅ Created issue #${result.data.number}`);
+              console.log('Created issue #' + result.data.number);
               return result.data.number;
               
             } catch (error) {
-              console.error(`Failed to create issue: ${error.message}`);
+              console.error('Failed to create issue: ' + error.message);
               throw error;
             }
