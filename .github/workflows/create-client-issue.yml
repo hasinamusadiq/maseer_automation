@@ -76,9 +76,6 @@ jobs:
         with:
           github-token: ${{ secrets.PAT_TOKEN_MASEER }}
           script: |
-            const fs = require('fs');
-            
-            // Build issue body
             const issueBody = `---
 name: New Client Registration
 about: Register a new brand for AI video marketing
@@ -140,8 +137,9 @@ labels: [new-client]
               });
               
               console.log(`✅ Created issue #${result.data.number}`);
-              core.setOutput('issue_number', result.data.number);
+              return result.data.number;
               
             } catch (error) {
-              core.setFailed(`Failed to create issue: ${error.message}`);
+              console.error(`Failed to create issue: ${error.message}`);
+              throw error;
             }
