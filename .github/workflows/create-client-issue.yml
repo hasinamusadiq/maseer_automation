@@ -71,101 +71,85 @@ jobs:
   create-issue:
     runs-on: ubuntu-latest
     steps:
-      - name: Prepare data
-        id: prep
+      - name: Set defaults
+        id: defs
         run: |
           echo "local_name=${{ github.event.inputs.local_name || 'N/A' }}" >> $GITHUB_OUTPUT
-          echo "secondary_color=${{ github.event.inputs.secondary_color || '#EAB308' }}" >> $GITHUB_OUTPUT
-          echo "target_audience=${{ github.event.inputs.target_audience || 'General Afghan market' }}" >> $GITHUB_OUTPUT
-          echo "key_offerings=${{ github.event.inputs.key_offerings || 'Premium products/services' }}" >> $GITHUB_OUTPUT
-          echo "contact_info=${{ github.event.inputs.contact_info || 'N/A' }}" >> $GITHUB_OUTPUT
-          if [ -n "${{ github.event.inputs.logo_base64 }}" ]; then
-            echo "logo_status=Included (see JSON below)" >> $GITHUB_OUTPUT
+          echo "secondary=${{ github.event.inputs.secondary_color || '#EAB308' }}" >> $GITHUB_OUTPUT
+          echo "audience=${{ github.event.inputs.target_audience || 'General Afghan market' }}" >> $GITHUB_OUTPUT
+          echo "offerings=${{ github.event.inputs.key_offerings || 'Premium products/services' }}" >> $GITHUB_OUTPUT
+          echo "contact=${{ github.event.inputs.contact_info || 'N/A' }}" >> $GITHUB_OUTPUT
+          if [ -z "${{ github.event.inputs.logo_base64 }}" ]; then
+            echo "logo=None" >> $GITHUB_OUTPUT
           else
-            echo "logo_status=None" >> $GITHUB_OUTPUT
+            echo "logo=Included (see JSON below)" >> $GITHUB_OUTPUT
           fi
 
-      - name: Write script
+      - name: Create issue body file
         run: |
-          cat > create_issue.js << 'EOF'
-          const fs = require('fs');
-          
-          const issueBody = fs.readFileSync('issue_body.md', 'utf8');
-          
-          github.rest.issues.create({
-            owner: 'hasinamusadiq',
-            repo: 'maseer_automation',
-            title: 'New Client: ' + process.env.BRAND_NAME,
-            body: issueBody,
-            labels: ['new-client']
-          }).then(result => {
-            console.log('Created issue #' + result.data.number);
-          }).catch(error => {
-            console.error('Failed: ' + error.message);
-            process.exit(1);
-          });
-          EOF
+          echo "---" > body.txt
+          echo "name: New Client Registration" >> body.txt
+          echo "about: Register a new brand for AI video marketing" >> body.txt
+          echo "title: \"New Client: ${{ github.event.inputs.brand_name }}\"" >> body.txt
+          echo "labels: [new-client]" >> body.txt
+          echo "---" >> body.txt
+          echo "" >> body.txt
+          echo "## New Brand Registration - Maseer Media Inc." >> body.txt
+          echo "" >> body.txt
+          echo "**Submitted:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> body.txt
+          echo "**Status:** Standard" >> body.txt
+          echo "" >> body.txt
+          echo "### Brand Information" >> body.txt
+          echo "| Field | Value |" >> body.txt
+          echo "|-------|-------|" >> body.txt
+          echo "| **Brand Name** | ${{ github.event.inputs.brand_name }} |" >> body.txt
+          echo "| **Local Name** | ${{ steps.defs.outputs.local_name }} |" >> body.txt
+          echo "| **Industry** | ${{ github.event.inputs.industry }} |" >> body.txt
+          echo "| **Location** | Kabul, Afghanistan |" >> body.txt
+          echo "" >> body.txt
+          echo "### Visual Identity" >> body.txt
+          echo "| Field | Value |" >> body.txt
+          echo "|-------|-------|" >> body.txt
+          echo "| **Primary Color** | ${{ github.event.inputs.primary_color }} |" >> body.txt
+          echo "| **Secondary Color** | ${{ steps.defs.outputs.secondary }} |" >> body.txt
+          echo "| **Logo** | ${{ steps.defs.outputs.logo }} |" >> body.txt
+          echo "" >> body.txt
+          echo "### Marketing Details" >> body.txt
+          echo "| Field | Value |" >> body.txt
+          echo "|-------|-------|" >> body.txt
+          echo "| **Target Audience** | ${{ steps.defs.outputs.audience }} |" >> body.txt
+          echo "| **Key Offerings** | ${{ steps.defs.outputs.offerings }} |" >> body.txt
+          echo "| **Contact** | ${{ steps.defs.outputs.contact }} |" >> body.txt
+          echo "" >> body.txt
+          echo "### Raw Data (JSON)" >> body.txt
+          echo '```json' >> body.txt
+          echo "{" >> body.txt
+          echo "  \"brand_name\": \"${{ github.event.inputs.brand_name }}\"," >> body.txt
+          echo "  \"local_name\": \"${{ github.event.inputs.local_name }}\"," >> body.txt
+          echo "  \"industry\": \"${{ github.event.inputs.industry }}\"," >> body.txt
+          echo "  \"primary_color\": \"${{ github.event.inputs.primary_color }}\"," >> body.txt
+          echo "  \"secondary_color\": \"${{ github.event.inputs.secondary_color }}\"," >> body.txt
+          echo "  \"target_audience\": \"${{ github.event.inputs.target_audience }}\"," >> body.txt
+          echo "  \"key_offerings\": \"${{ github.event.inputs.key_offerings }}\"," >> body.txt
+          echo "  \"contact_info\": \"${{ github.event.inputs.contact_info }}\"," >> body.txt
+          echo "  \"logo_base64\": \"${{ github.event.inputs.logo_base64 }}\"," >> body.txt
+          echo "  \"language\": \"${{ github.event.inputs.language }}\"," >> body.txt
+          echo "  \"request_sample\": true" >> body.txt
+          echo "}" >> body.txt
+          echo '```' >> body.txt
 
-      - name: Write issue body
+      - name: Create issue via API
         run: |
-          cat > issue_body.md << 'BODYEOF'
-          ---
-          name: New Client Registration
-          about: Register a new brand for AI video marketing
-          title: "New Client: ${{ github.event.inputs.brand_name }}"
-          labels: [new-client]
-          ---
-
-          ## New Brand Registration - Maseer Media Inc.
-
-          **Submitted:** ${{ github.event.inputs.brand_name }}
-          **Status:** Standard
-
-          ### Brand Information
-          | Field | Value |
-          |-------|-------|
-          | **Brand Name** | ${{ github.event.inputs.brand_name }} |
-          | **Local Name** | ${{ steps.prep.outputs.local_name }} |
-          | **Industry** | ${{ github.event.inputs.industry }} |
-          | **Location** | Kabul, Afghanistan |
-
-          ### Visual Identity
-          | Field | Value |
-          |-------|-------|
-          | **Primary Color** | ${{ github.event.inputs.primary_color }} |
-          | **Secondary Color** | ${{ steps.prep.outputs.secondary_color }} |
-          | **Logo** | ${{ steps.prep.outputs.logo_status }} |
-
-          ### Marketing Details
-          | Field | Value |
-          |-------|-------|
-          | **Target Audience** | ${{ steps.prep.outputs.target_audience }} |
-          | **Key Offerings** | ${{ steps.prep.outputs.key_offerings }} |
-          | **Contact** | ${{ steps.prep.outputs.contact_info }} |
-
-          ### Raw Data (JSON)
-          ```json
-          {
-            "brand_name": "${{ github.event.inputs.brand_name }}",
-            "local_name": "${{ github.event.inputs.local_name }}",
-            "industry": "${{ github.event.inputs.industry }}",
-            "primary_color": "${{ github.event.inputs.primary_color }}",
-            "secondary_color": "${{ github.event.inputs.secondary_color }}",
-            "target_audience": "${{ github.event.inputs.target_audience }}",
-            "key_offerings": "${{ github.event.inputs.key_offerings }}",
-            "contact_info": "${{ github.event.inputs.contact_info }}",
-            "logo_base64": "${{ github.event.inputs.logo_base64 }}",
-            "language": "${{ github.event.inputs.language }}",
-            "request_sample": true
-          }
-          ```
-          BODYEOF
-        env:
-          BRAND_NAME: ${{ github.event.inputs.brand_name }}
-
-      - name: Create Issue
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.PAT_TOKEN_MASEER }}
-          script: |
-            const script = require('./create_issue.js');
+          # Escape the body for JSON
+          BODY=$(cat body.txt | jq -Rs .)
+          
+          # Build JSON payload
+          echo "{\"title\":\"New Client: ${{ github.event.inputs.brand_name }}\",\"body\":${BODY},\"labels\":[\"new-client\"]}" > payload.json
+          
+          # Create the issue
+          curl -s -X POST \
+            -H "Authorization: token ${{ secrets.PAT_TOKEN_MASEER }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Content-Type: application/json" \
+            https://api.github.com/repos/hasinamusadiq/maseer_automation/issues \
+            -d @payload.json
