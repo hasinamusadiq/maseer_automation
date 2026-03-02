@@ -212,7 +212,8 @@ def get_clients_for_campaign(campaign_type, specific_client=None):
                 eligible.append(client)
             continue
         
-        # For daily campaigns: check if already done today
+        # TEMPORARY: Process all clients for testing
+        # Comment out the date check below to force reprocess
         campaigns_done = client.get('campaigns_completed', [])
         
         # Reset if new day
@@ -221,6 +222,10 @@ def get_clients_for_campaign(campaign_type, specific_client=None):
         if last and not last.startswith(today):
             client['campaigns_completed'] = []
             campaigns_done = []
+        
+        # FOR TESTING: Uncomment next line to process all clients always
+        # eligible.append(client)
+        # continue
         
         if campaign_type not in campaigns_done:
             eligible.append(client)
