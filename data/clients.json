@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "brand_name": "Zarrin Jewelry",
+    "local_name": "زرین جواهرات",
+    "industry": "Jewelry & Gold",
+    "primary_color": "#D4AF37",
+    "secondary_color": "#1C1C1C",
+    "target_audience": "Affluent women 25-45, wedding shoppers, gold investors",
+    "key_offerings": "Handmade 24K gold jewelry, traditional Afghan designs, custom wedding sets, gold investment bars",
+    "contact_info": "+93 70 123 4567",
+    "logo_path": null,
+    "language": "fa",
+    "signup_date": "2024-01-15T10:30:00.000Z",
+    "request_sample": true,
+    "sample_generated": false,
+    "campaigns_completed": [],
+    "total_videos": 0,
+    "meta_specs": {
+      "width": 1224,
+      "height": 1536,
+      "aspect_ratio": "4:5",
+      "platforms": ["instagram_feed", "instagram_story", "facebook_feed"],
+      "optimal_for": "Meta advertising with maximum screen real estate"
+    }
+  }
+]
