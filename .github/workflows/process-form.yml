@@ -44,10 +44,20 @@ jobs:
             ghostscript \
             fonts-dejavu \
             fonts-freefont-ttf \
-            fonts-noto-core \
-            fonts-noto-arabic \
+            fonts-noto \
             ffmpeg \
-            libimagequant-dev
+            libimagequant-dev \
+            wget
+
+      - name: Download Noto Arabic Fonts
+        run: |
+          mkdir -p ~/.fonts
+          cd ~/.fonts
+          wget -q "https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoNaskhArabic/NotoNaskhArabic-Regular.ttf" || true
+          wget -q "https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoNaskhArabic/NotoNaskhArabic-Bold.ttf" || true
+          wget -q "https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSansArabic/NotoSansArabic-Regular.ttf" || true
+          fc-cache -f || true
+          echo "Fonts downloaded"
 
       - name: Configure ImageMagick
         run: |
@@ -139,5 +149,5 @@ jobs:
               issue_number: context.issue.number || ${{ github.event.inputs.issue_number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## ❌ Registration Failed\n\nPlease check:\n- ✓ Brand Name provided\n- ✓ Industry selected\n- ✓ Primary Color in hex format (e.g., #6B21A8)\n- ✓ Logo uploaded successfully\n\n**Need help?** Contact support@maseer.media`
+              body: `## ❌ Registration Failed\n\nPlease check:\n- ✓ Brand Name provided\n- ✓ Industry selected\n- ✓ Primary Color in hex format (e.g., #6B21A8)\n- ✓ Logo uploaded successfully (attach as comment)\n\n**Need help?** Contact support@maseer.media`
             });
