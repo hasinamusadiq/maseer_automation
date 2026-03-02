@@ -2,7 +2,167 @@ name: Create Client Issue
 
 on:
   workflow_dispatch:
+    inputs:name: Create Client Issue
+
+on:
+  workflow_dispatch:
     inputs:
+      brand_name:
+        description: 'Brand Name'
+        required: true
+        type: string
+      local_name:
+        description: 'Local Name (optional)'
+        required: false
+        type: string
+      industry:
+        description: 'Industry'
+        required: true
+        type: choice
+        options:
+          - Jewelry & Gold
+          - Café & Restaurant
+          - Fashion & Clothing
+          - Technology & IT
+          - Healthcare & Medical
+          - Education & Training
+          - Real Estate
+          - Automotive
+          - Beauty & Cosmetics
+          - Construction & Materials
+          - Consultancy & Services
+          - Retail & Shopping
+          - Travel & Hospitality
+          - Agriculture
+          - Handicrafts
+      primary_color:
+        description: 'Primary Color (hex)'
+        required: true
+        type: string
+        default: '#6B21A8'
+      secondary_color:
+        description: 'Secondary Color (hex, optional)'
+        required: false
+        type: string
+        default: '#EAB308'
+      target_audience:
+        description: 'Target Audience (optional)'
+        required: false
+        type: string
+      key_offerings:
+        description: 'Key Offerings (optional)'
+        required: false
+        type: string
+      contact_info:
+        description: 'Contact/WhatsApp (optional)'
+        required: false
+        type: string
+      logo_base64:
+        description: 'Logo Base64 (paste if large, optional)'
+        required: false
+        type: string
+      language:
+        description: 'Language'
+        required: false
+        type: choice
+        options:
+          - en
+          - fa
+          - ps
+        default: 'en'
+
+jobs:
+  create-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build Issue Body
+        id: build-body
+        run: |
+          cat << 'BODY_EOF' > issue_body.txt
+          ---
+          name: New Client Registration
+          about: Register a new brand for AI video marketing
+          title: "New Client: ${{ github.event.inputs.brand_name }}"
+          labels: [new-client]
+          ---
+
+          ## New Brand Registration - Maseer Media Inc.
+
+          **Submitted:** $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          **Status:** Standard
+
+          ### Brand Information
+          | Field | Value |
+          |-------|-------|
+          | **Brand Name** | ${{ github.event.inputs.brand_name }} |
+          | **Local Name** | ${{ github.event.inputs.local_name }} |
+          | **Industry** | ${{ github.event.inputs.industry }} |
+          | **Location** | Kabul, Afghanistan |
+
+          ### Visual Identity
+          | Field | Value |
+          |-------|-------|
+          | **Primary Color** | ${{ github.event.inputs.primary_color }} |
+          | **Secondary Color** | ${{ github.event.inputs.secondary_color }} |
+          | **Logo** | ${{ github.event.inputs.logo_base64 }} |
+
+          ### Marketing Details
+          | Field | Value |
+          |-------|-------|
+          | **Target Audience** | ${{ github.event.inputs.target_audience }} |
+          | **Key Offerings** | ${{ github.event.inputs.key_offerings }} |
+          | **Contact** | ${{ github.event.inputs.contact_info }} |
+
+          ### Raw Data (JSON)
+          ```json
+          {
+            "brand_name": "${{ github.event.inputs.brand_name }}",
+            "local_name": "${{ github.event.inputs.local_name }}",
+            "industry": "${{ github.event.inputs.industry }}",
+            "primary_color": "${{ github.event.inputs.primary_color }}",
+            "secondary_color": "${{ github.event.inputs.secondary_color }}",
+            "target_audience": "${{ github.event.inputs.target_audience }}",
+            "key_offerings": "${{ github.event.inputs.key_offerings }}",
+            "contact_info": "${{ github.event.inputs.contact_info }}",
+            "logo_base64": "${{ github.event.inputs.logo_base64 }}",
+            "language": "${{ github.event.inputs.language }}",
+            "request_sample": true
+          }
+          ```
+          BODY_EOF
+          
+          # Replace empty values with defaults
+          sed -i 's/| **Local Name** | |/| **Local Name** | N/A |/' issue_body.txt
+          sed -i 's/| **Secondary Color** | |/| **Secondary Color** | #EAB308 |/' issue_body.txt
+          sed -i 's/| **Logo** | |/| **Logo** | None |/' issue_body.txt
+          sed -i 's/| **Target Audience** | |/| **Target Audience** | General Afghan market |/' issue_body.txt
+          sed -i 's/| **Key Offerings** | |/| **Key Offerings** | Premium products\/services |/' issue_body.txt
+          sed -i 's/| **Contact** | |/| **Contact** | N\/A |/' issue_body.txt
+
+      - name: Create Issue in Automation Repo
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN_MASEER }}
+          script: |
+            const fs = require('fs');
+            const issueBody = fs.readFileSync('issue_body.txt', 'utf8');
+
+            try {
+              const result = await github.rest.issues.create({
+                owner: 'hasinamusadiq',
+                repo: 'maseer_automation',
+                title: 'New Client: ${{ github.event.inputs.brand_name }}',
+                body: issueBody,
+                labels: ['new-client']
+              });
+              
+              console.log('Created issue #' + result.data.number);
+              return result.data.number;
+              
+            } catch (error) {
+              console.error('Failed to create issue: ' + error.message);
+              throw error;
+            }
       brand_name:
         description: 'Brand Name'
         required: true
