@@ -1,0 +1,67 @@
+name: Submit to Automation
+
+on:
+  workflow_dispatch:
+    inputs:
+      brand_name:
+        description: 'Brand Name'
+        required: true
+        type: string
+      local_name:
+        description: 'Local Name'
+        required: false
+        type: string
+      industry:
+        description: 'Industry'
+        required: true
+        type: string
+      primary_color:
+        description: 'Primary Color'
+        required: true
+        type: string
+      secondary_color:
+        description: 'Secondary Color'
+        required: false
+        type: string
+      target_audience:
+        description: 'Target Audience'
+        required: false
+        type: string
+      key_offerings:
+        description: 'Key Offerings'
+        required: false
+        type: string
+      contact_info:
+        description: 'Contact Info'
+        required: false
+        type: string
+      logo_base64:
+        description: 'Logo Base64'
+        required: false
+        type: string
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Backend Automation
+        run: |
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.PAT_TOKEN_MASEER }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ secrets.BACKEND_REPO }}/dispatches \
+            -d '{
+              "event_type": "new-client",
+              "client_payload": {
+                "brand_name": "${{ github.event.inputs.brand_name }}",
+                "local_name": "${{ github.event.inputs.local_name }}",
+                "industry": "${{ github.event.inputs.industry }}",
+                "primary_color": "${{ github.event.inputs.primary_color }}",
+                "secondary_color": "${{ github.event.inputs.secondary_color }}",
+                "target_audience": "${{ github.event.inputs.target_audience }}",
+                "key_offerings": "${{ github.event.inputs.key_offerings }}",
+                "contact_info": "${{ github.event.inputs.contact_info }}",
+                "logo_base64": "${{ github.event.inputs.logo_base64 }}",
+                "request_sample": true
+              }
+            }'
