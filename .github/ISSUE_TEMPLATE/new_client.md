@@ -1,6 +1,6 @@
 ---
-name: New Client Registration
-about: Register a new brand for AI video marketing
+name: New Client Registration (Legacy)
+about: Manual registration using markdown template
 title: "New Client: [Brand Name]"
 labels: [new-client]
 ---
