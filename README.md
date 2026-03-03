@@ -22,7 +22,14 @@ AI-powered video marketing for Afghan businesses. The automation backend for Mas
 | `TELEGRAM_CHAT_ID` | Your Telegram chat ID |
 | `PAT_TOKEN` | GitHub Personal Access Token (repo scope) |
 
-### Frontend Repository
-The signup form lives at `hasinamusadiq.github.io/maseer-portal/` (separate repo).
+### Daily Automation
+- **4 Campaigns Daily**: Morning (6AM), Midday (12PM), Evening (6PM), Night (12AM) Kabul time
+- **Auto-Cleanup**: Artifacts deleted after 1 day to prevent storage overflow
+- **Compression**: All videos compressed with H.264 CRF 23
 
-## 📋 Client Data Flow
+## 📁 Structure
+- `src/ai_engine.py` - Content generation with Groq
+- `src/video_creator.py` - 1224×1536 video composition
+- `src/image_service.py` - SDXL image generation
+- `src/update_clients.py` - Issue parsing
+- `.github/workflows/` - CI/CD automation
