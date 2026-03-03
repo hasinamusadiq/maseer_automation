@@ -1,12 +1,29 @@
-groq>=0.9.0
-httpx>=0.27.0
-moviepy==1.0.3
-Pillow>=9.5.0
-requests>=2.31.0
-python-dotenv>=1.0.0
-arabic-reshaper>=3.0.0
-python-bidi>=0.4.2
-numpy>=1.24.0
-imageio>=2.31.0
-imageio-ffmpeg>=0.4.8
-huggingface_hub>=0.20.0
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Kimi-specific (if applicable)
+.kimi/
