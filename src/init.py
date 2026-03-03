@@ -7,14 +7,12 @@ __version__ = "2.0.0"
 __author__ = "Maseer Media Team"
 __description__ = "Automated 1224×1536 video generation with 4 daily campaigns"
 
-# Core modules
 from . import ai_engine
 from . import image_service
 from . import video_creator
 from . import update_clients
 from . import main
 
-# Key exports
 from .ai_engine import (
     get_content_for_campaign,
     generate_all_campaigns,
