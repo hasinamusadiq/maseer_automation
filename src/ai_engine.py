@@ -4,7 +4,6 @@ from groq import Groq
 from datetime import datetime
 
 
-# Campaign configurations with specific styles and languages
 CAMPAIGNS = {
     'morning': {
         'name': 'Morning Motivation',
@@ -12,17 +11,18 @@ CAMPAIGNS = {
         'language': 'Persian/Dari',
         'style': 'Celestial Minimalism',
         'energy': 'Calm, ethereal, uplifting',
+        'motion_profile': 'slow_parallax',
+        'color_psychology': 'Navy (#1e3a5f) evokes trust and depth, gold (#FFD700) stimulates optimism',
+        'font_style': 'Nastaʿlīq script, thin weight, elegant',
+        'tone': 'inspirational, peaceful, awakening',
+        'plot_arc': 'hook_awakening→desire_aspiration→solution_possibility→cta_begin',
         'visual_elements': [
             'Thin elegant Nastaʿlīq calligraphy fading like morning mist',
             'Deep navy-to-gold gradient background',
-            'Floating Zarrin geometric shapes (simplified sun, 2D line-art mountain)',
+            'Floating Zarrin geometric shapes',
             'Parallax motion effect',
             'Vastness and fantasy atmosphere'
-        ],
-        'color_psychology': 'Navy (#1e3a5f) evokes trust and depth, gold (#FFD700) stimulates optimism and premium perception',
-        'motion': 'slow_parallax',
-        'font_style': 'Nastaʿlīq script, thin weight, elegant',
-        'tone': 'inspirational, peaceful, awakening'
+        ]
     },
     'midday': {
         'name': 'General Information',
@@ -30,17 +30,18 @@ CAMPAIGNS = {
         'language': 'Pashto',
         'style': 'Organic Hujra Aesthetic',
         'energy': 'Cordial, grounded, trustworthy',
+        'motion_profile': 'organic_wipe',
+        'color_psychology': 'Terracotta (#D97706) creates warmth, olive (#65A30D) suggests growth',
+        'font_style': 'Rounded Pashto, soft edges, approachable',
+        'tone': 'informative, welcoming, community-focused',
+        'plot_arc': 'hook_community→desire_belonging→solution_trust→cta_connect',
         'visual_elements': [
             'Hand-drawn textures resembling linen or craft paper',
             'Warm earthy tones (terracotta, sand, olive)',
             'Soft rounded Pashto typography',
             'Organic wipes (paint strokes, rustling leaves)',
-            'Hujra (guest house) warmth and hospitality'
-        ],
-        'color_psychology': 'Terracotta (#D97706) creates warmth, olive (#65A30D) suggests growth and tradition',
-        'motion': 'organic_wipe',
-        'font_style': 'Rounded Pashto, soft edges, approachable',
-        'tone': 'informative, welcoming, community-focused'
+            'Hujra warmth and hospitality'
+        ]
     },
     'evening': {
         'name': 'Service Promotion',
@@ -48,17 +49,18 @@ CAMPAIGNS = {
         'language': 'Persian/Dari',
         'style': 'Modern Classic Detailed',
         'energy': 'Professional, inspiring, authoritative',
+        'motion_profile': 'kinetic_detail',
+        'color_psychology': 'Deep purple (#581C87) conveys luxury, amber (#F59E0B) drives action',
+        'font_style': 'Modern sans-serif, bold weights, high contrast',
+        'tone': 'persuasive, confident, premium',
+        'plot_arc': 'hook_problem→desire_solution→proof_quality→cta_act_now',
         'visual_elements': [
             'High-resolution product/service photography',
             'Crisp sans-serif Dari fonts for readability',
             'Detail callouts with animated lines',
             '3D rotation of featured elements',
             'Kinetic typography for CTA'
-        ],
-        'color_psychology': 'Deep purple (#581C87) conveys luxury, amber (#F59E0B) drives action and urgency',
-        'motion': 'kinetic_detail',
-        'font_style': 'Modern sans-serif, bold weights, high contrast',
-        'tone': 'persuasive, confident, premium'
+        ]
     },
     'night': {
         'name': 'Brand Awareness',
@@ -66,17 +68,18 @@ CAMPAIGNS = {
         'language': 'English',
         'style': 'Tactile Stop-Motion',
         'energy': 'Bold, artistic, memorable',
+        'motion_profile': 'stop_motion',
+        'color_psychology': 'Midnight blue (#0F172A) creates sophistication, neon accents (#EC4899) for modern edge',
+        'font_style': 'Bold English, geometric, contemporary',
+        'tone': 'bold, artistic, unforgettable',
+        'plot_arc': 'hook_intrigue→desire_uniqueness→proof_craftsmanship→cta_remember',
         'visual_elements': [
             'Stop-motion animation with real-world objects',
             'Brand logo physically assembled by hand-moved elements',
             'Paper-cutout animation for brand storytelling',
             '12fps stuttery frame rate',
             'Tactile, human feel against digital smoothness'
-        ],
-        'color_psychology': 'Midnight blue (#0F172A) creates sophistication, neon accents (#EC4899) for modern edge',
-        'motion': 'stop_motion',
-        'font_style': 'Bold English, geometric, contemporary',
-        'tone': 'bold, artistic, unforgettable'
+        ]
     },
     'sample': {
         'name': 'Undeniable Sample',
@@ -84,21 +87,21 @@ CAMPAIGNS = {
         'language': 'Persian/Dari',
         'style': 'Maximum Impact Fusion',
         'energy': 'Stunning, undeniable, conversion-focused',
+        'motion_profile': 'cinematic_reveal',
+        'color_psychology': 'Primary color at 120% saturation for brand recognition, gold accents for perceived value',
+        'font_style': 'Hybrid: Nastaʿlīq elegance + modern boldness',
+        'tone': 'irresistible, premium, must-subscribe',
+        'plot_arc': 'hook_shock→desire_must_have→proof_impossible_ignore→cta_subscribe',
         'visual_elements': [
             'Cinematic lighting with dramatic shadows',
             'Brand colors amplified to maximum saturation',
             'Logo reveal with particle effects',
             'Industry-specific visual metaphors',
             'Parallax + kinetic hybrid motion'
-        ],
-        'color_psychology': 'Primary color at 120% saturation for brand recognition, gold accents for perceived value',
-        'motion': 'cinematic_reveal',
-        'font_style': 'Hybrid: Nastaʿlīq elegance + modern boldness',
-        'tone': 'irresistible, premium, must-subscribe'
+        ]
     }
 }
 
-# Industry-specific visual metaphors to avoid overlap
 INDUSTRY_METAPHORS = {
     'Jewelry & Gold': {
         'morning': 'Golden sunrise reflecting off polished gemstones, delicate filigree patterns emerging from mist',
@@ -209,20 +212,15 @@ INDUSTRY_METAPHORS = {
 
 
 def get_campaign_config(campaign_type='morning'):
-    """Get configuration for specific campaign type."""
     return CAMPAIGNS.get(campaign_type, CAMPAIGNS['morning'])
 
 
 def get_industry_metaphor(industry, campaign_type):
-    """Get industry-specific visual metaphor for campaign."""
     industry_data = INDUSTRY_METAPHORS.get(industry, INDUSTRY_METAPHORS['Retail & Shopping'])
     return industry_data.get(campaign_type, industry_data['morning'])
 
 
 def get_content_for_campaign(client_data, campaign_type='morning', is_sample=False):
-    """
-    Generate content optimized for specific campaign with industry metaphors.
-    """
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         print("❌ GROQ_API_KEY not found")
@@ -230,19 +228,16 @@ def get_content_for_campaign(client_data, campaign_type='morning', is_sample=Fal
 
     client = Groq(api_key=api_key)
     
-    # Get campaign configuration
     campaign = get_campaign_config('sample' if is_sample else campaign_type)
     industry = client_data.get('industry', 'Retail & Shopping')
     metaphor = get_industry_metaphor(industry, 'sample' if is_sample else campaign_type)
     
-    # Language-specific instructions
     lang_instructions = {
         'Persian/Dari': 'Use elegant Persian/Dari (Farsi). Nastaʿlīq script style. Kabul dialect preferred.',
         'Pashto': 'Use clear Pashto. Traditional script. Peshawar/Kabul dialect balance.',
         'English': 'Use bold, concise English. Modern sans-serif feel. Impact-focused.'
     }
     
-    # Build system prompt with campaign specifics
     system_prompt = f"""You are Maseer Media's elite AI creative director, specializing in Afghan market psychology and Meta-optimized content.
 
 CAMPAIGN BRIEF:
@@ -250,6 +245,8 @@ CAMPAIGN BRIEF:
 • Language: {campaign['language']}
 • Style: {campaign['style']}
 • Energy: {campaign['energy']}
+• Motion Profile: {campaign['motion_profile']}
+• Plot Arc: {campaign['plot_arc']}
 • Visual Direction: {' | '.join(campaign['visual_elements'])}
 • Color Psychology: {campaign['color_psychology']}
 • Typography: {campaign['font_style']}
@@ -260,19 +257,19 @@ INDUSTRY CONTEXT:
 
 CRITICAL RULES:
 1. Text MUST be in {campaign['language']} - {lang_instructions[campaign['language']]}
-2. Maximum 6 words for headlines (sample: 4 words for impact)
-3. Use power words that trigger Afghan consumer psychology
-4. Avoid generic stock photo descriptions
-5. Every visual element must serve the {campaign['energy']} energy
-6. Color usage must follow: {campaign['color_psychology']}"""
+2. Headline: 4-6 words MAX, punchy, emotional, SMART (Specific, Measurable intent, Achievable promise, Relevant, Time-bound where appropriate)
+3. Subheadline: 6-8 words supporting the headline
+4. CTA: 2-3 words, action-oriented, urgent
+5. Use power words that trigger Afghan consumer psychology
+6. Every visual element must serve the {campaign['energy']} energy
+7. Color usage must follow: {campaign['color_psychology']}
+8. Plot structure: Hook→Desire→Solution→CTA (must feel like a mini-story)"""
 
-    # Brand colors with psychology amplification
     primary = client_data.get('primary_color', '#6B21A8')
     secondary = client_data.get('secondary_color', '#EAB308')
     
-    # For sample, amplify colors
     if is_sample:
-        color_instruction = f"AMPLIFY brand colors: Primary {primary} at maximum saturation, Secondary {secondary} for gold accents. Create undeniable visual impact."
+        color_instruction = f"AMPLIFY brand colors: Primary {primary} at 120% saturation, Secondary {secondary} for gold accents. Create undeniable visual impact."
     else:
         color_instruction = f"Use Primary {primary} and Secondary {secondary} following campaign color psychology."
 
@@ -292,11 +289,12 @@ COLOR STRATEGY:
 
 OUTPUT JSON:
 {{
-  "headline": "6 words max, {campaign['language']}, {campaign['tone']}, power words",
-  "subheadline": "Optional 4-word supporting line",
+  "headline": "4-6 words, {campaign['language']}, {campaign['tone']}, SMART, power words",
+  "subheadline": "6-8 words supporting line",
   "image_prompt": "Ultra-detailed 1224x1536 composition: {campaign['style']}, {metaphor}, {campaign['font_style']}, colors {primary}/{secondary}, {campaign['energy']}, Meta-optimized 4:5, no text in image, cinematic lighting, 8K detail, Afghan cultural authenticity",
-  "motion_style": "{campaign['motion']}",
-  "cta_text": "2-word call-to-action in {campaign['language']}",
+  "motion_style": "{campaign['motion_profile']}",
+  "plot_arc": "{campaign['plot_arc']}",
+  "cta_text": "2-3 word call-to-action in {campaign['language']}",
   "engagement_hook": "Question or statement for caption",
   "color_usage": "Specific how {primary} and {secondary} are used",
   "psychology_trigger": "Primary emotional trigger used"
@@ -312,13 +310,12 @@ Return valid JSON only."""
                 {"role": "user", "content": user_prompt}
             ],
             response_format={"type": "json_object"},
-            temperature=0.75 if is_sample else 0.7,  # Higher creativity for sample
+            temperature=0.75 if is_sample else 0.7,
             max_tokens=900
         )
 
         content = json.loads(completion.choices[0].message.content)
         
-        # Enrich with metadata
         content['campaign_type'] = 'sample' if is_sample else campaign_type
         content['campaign_name'] = campaign['name']
         content['language'] = campaign['language']
@@ -334,14 +331,11 @@ Return valid JSON only."""
 
 
 def generate_all_campaigns(client_data):
-    """Generate content for all 4 campaigns + sample if needed."""
     campaigns = {}
     
-    # Generate sample if requested
     if client_data.get('request_sample') and not client_data.get('sample_generated'):
         campaigns['sample'] = get_content_for_campaign(client_data, is_sample=True)
     
-    # Generate all daily campaigns
     for campaign_type in ['morning', 'midday', 'evening', 'night']:
         campaigns[campaign_type] = get_content_for_campaign(client_data, campaign_type)
     
