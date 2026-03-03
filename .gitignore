@@ -1,4 +1,3 @@
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -7,43 +6,27 @@ __pycache__/
 *.egg-info/
 dist/
 build/
-
-# Virtual Environment
 venv/
 env/
 ENV/
-
-# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# Environment Variables
 .env
 .env.local
-
-# Data files (keep structure with .gitkeep)
 data/*
 !data/.gitkeep
-
-# Generated content (keep structure)
 output/*
 !output/.gitkeep
 logos/*
 !logos/.gitkeep
-
-# Temporary files
 *.log
 *.tmp
 temp_*.png
 .DS_Store
 Thumbs.db
-
-# Model cache
 .cache/
 models/
-
-# Test outputs
 test_*.mp4
 *_test.mp4
