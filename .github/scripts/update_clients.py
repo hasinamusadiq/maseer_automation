@@ -193,7 +193,7 @@ def validate(client):
 
 
 def save_client(client):
-    """Save to clients.json."""
+    """Save to clients.json with locking."""
     path = 'data/clients.json'
     
     try:
@@ -203,7 +203,7 @@ def save_client(client):
         clients = []
         os.makedirs('data', exist_ok=True)
     
-    # Update existing or append
+    # Check for duplicates
     existing = None
     for i, c in enumerate(clients):
         if c.get('brand_name', '').lower() == client['brand_name'].lower():
@@ -223,9 +223,12 @@ def save_client(client):
         clients.append(client)
         print(f"   ✨ New: {client['brand_name']}")
     
-    with open(path, 'w') as f:
+    # Atomic write (write to temp, then rename)
+    temp_path = f'{path}.tmp'
+    with open(temp_path, 'w') as f:
         json.dump(clients, f, indent=2, ensure_ascii=False)
     
+    os.replace(temp_path, path)
     return True
 
 
