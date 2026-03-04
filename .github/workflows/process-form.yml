@@ -31,10 +31,9 @@ jobs:
         with:
           python-version: '3.10'
           
-      - name: Create Directories
+      - name: Create Required Directories
         run: |
           mkdir -p data logos output
-          ls -la data/ || echo "Creating fresh"
 
       - name: Install System Dependencies
         run: |
@@ -80,6 +79,18 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
+          pip install firebase-admin  # Additional for Firebase integration
+
+      - name: Setup Firebase Service Account
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
+            echo "$FIREBASE_SERVICE_ACCOUNT_JSON" | base64 -d > firebase-service-account.json
+            echo "✅ Firebase service account configured"
+          else
+            echo "⚠️ No Firebase service account - Firebase upload disabled"
+          fi
           
       - name: Parse Registration Form
         id: parse
@@ -101,34 +112,71 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          FIREBASE_FUNCTION_URL: ${{ secrets.FIREBASE_FUNCTION_URL }}
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           echo "🎬 GENERATING UNDENIABLE SAMPLE for ${{ steps.parse.outputs.brand_name }}"
           echo "Resolution: 1224×1536 | Campaign: SAMPLE (Maximum Impact)"
+          echo "Firebase UID: ${{ steps.parse.outputs.firebase_uid }}"
           python src/main.py --sample --client "${{ steps.parse.outputs.brand_name }}"
           
-      - name: Commit Data
+      - name: Upload Video to GitHub Release
+        if: steps.sample.outcome == 'success'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: sample-${{ steps.parse.outputs.firebase_uid || github.run_id }}-${{ github.run_number }}
+          name: "Sample: ${{ steps.parse.outputs.brand_name }}"
+          body: |
+            ## 🎬 AI-Generated Sample Video
+            
+            **Brand:** ${{ steps.parse.outputs.brand_name }}  
+            **Firebase UID:** `${{ steps.parse.outputs.firebase_uid }}`  
+            **Generated:** ${{ github.event.head_commit.timestamp || github.event.issue.created_at }}
+            
+            ### Video Specifications
+            - **Resolution:** 1224×1536 pixels (4:5 Aspect Ratio)
+            - **Duration:** 15 seconds
+            - **Style:** Maximum Impact Fusion
+            - **Optimization:** Meta Platforms (Instagram/Facebook)
+            
+            ### Next Steps
+            1. View your sample video above
+            2. Subscribe by sending SMS "Maseer" to +93 79 353 5228
+            3. Receive 4 daily videos after subscription activation
+            
+            ---
+            *Maseer Media - Precision-Crafted for Afghan Brands*
+          files: output/*.mp4
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      - name: Commit Updated Client Data
         if: steps.parse.outputs.updated == 'true'
         run: |
           git config --local user.email "maseer@automation.bot"
           git config --local user.name "Maseer Sample Bot"
           git add data/clients.json logos/
-          git commit -m "🎯 ${{ steps.parse.outputs.brand_name }}: Registration + Sample Generated" || echo "No changes"
-          git push
+          git diff --cached --quiet || git commit -m "🎯 ${{ steps.parse.outputs.brand_name }}: Registration + Sample Generated [skip ci]"
+          git push || echo "No changes to commit"
 
-      - name: Comment Success
+      - name: Comment Success on Issue
         if: steps.parse.outputs.updated == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const brand = '${{ steps.parse.outputs.brand_name }}';
+            const uid = '${{ steps.parse.outputs.firebase_uid }}';
             const sampleSuccess = '${{ steps.sample.outcome }}' === 'success';
+            const releaseUrl = `https://github.com/${{ github.repository }}/releases/tag/sample-${uid || '${{ github.run_id }}'}-${{ github.run_number }}`;
             
             github.rest.issues.createComment({
               issue_number: context.issue.number || ${{ github.event.inputs.issue_number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## ✅ ${brand} - Registration Complete\n\n${sampleSuccess ? '🎬 **UNDENIABLE SAMPLE VIDEO GENERATED**' : '⚠️ Sample generation encountered issues'}\n\n### 📱 Your Video Specifications\n- **Resolution:** 1224×1536 pixels (4:5 Aspect Ratio)\n- **Optimized for:** Instagram Feed, Stories, Facebook\n- **Delivery:** Check your Telegram now\n\n### 📅 Daily Campaign Schedule (Kabul Time)\n| Time | Campaign | Language | Visual Style |\n|------|----------|----------|--------------|\n| 6:00 AM | Morning Motivation | Persian/Dari | Celestial Minimalism |\n| 12:00 PM | General Information | Pashto | Organic Hujra |\n| 6:00 PM | Service Promotion | Persian/Dari | Modern Classic |\n| 12:00 AM | Brand Awareness | English | Tactile Stop-Motion |\n\n**Next video:** Tomorrow at 6:00 AM Kabul time\n\n*Maseer Media - Precision-Crafted for Afghan Brands*`
+              body: `## ✅ ${brand} - Registration Complete\n\n${sampleSuccess ? '🎬 **UNDENIABLE SAMPLE VIDEO GENERATED**' : '⚠️ Sample generation encountered issues'}\n\n### 📱 Your Video is Ready\n${sampleSuccess ? `**Download/View:** [GitHub Release](${releaseUrl})` : 'Please contact support'}\n\n**Firebase UID:** \`${uid}\`\n\n### 📐 Video Specifications\n- **Resolution:** 1224×1536 pixels (4:5 Aspect Ratio)\n- **Optimized for:** Instagram Feed, Stories, Facebook\n- **Style:** Maximum Impact Fusion\n- **Generation Time:** ~3 minutes\n\n### 📅 Daily Campaign Schedule (Kabul Time)\| Time | Campaign | Language | Visual Style |\n|------|----------|----------|--------------|\n| 6:00 AM | Morning Motivation | Persian/Dari | Celestial Minimalism |\n| 12:00 PM | General Information | Pashto | Organic Hujra |\n| 6:00 PM | Service Promotion | Persian/Dari | Modern Classic |\n| 12:00 AM | Brand Awareness | English | Tactile Stop-Motion |\n\n### 🚀 How to Subscribe\n1. **SMS:** Send "Maseer" to **+93 79 353 5228**\n2. **Wait:** Our team will contact you within 24 hours\n3. **Activate:** Start receiving 4 daily videos\n\n**Next video:** Tomorrow at 6:00 AM Kabul time\n\n---\n*Maseer Media - Precision-Crafted for Afghan Brands*`
             });
             
             github.rest.issues.update({
@@ -139,7 +187,7 @@ jobs:
               labels: ['new-client', 'processed', 'sample-generated']
             });
             
-      - name: Comment Failure
+      - name: Comment Failure on Issue
         if: steps.parse.outputs.updated == 'false'
         uses: actions/github-script@v7
         with:
@@ -149,5 +197,21 @@ jobs:
               issue_number: context.issue.number || ${{ github.event.inputs.issue_number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## ❌ Registration Failed\n\nPlease check:\n- ✓ Brand Name provided\n- ✓ Industry selected\n- ✓ Primary Color in hex format (e.g., #6B21A8)\n- ✓ Logo uploaded successfully (attach as comment)\n\n**Need help?** Contact support@maseer.media`
+              body: `## ❌ Registration Failed\n\nPlease check the following required fields:\n- ✓ Brand Name provided\n- ✓ Industry selected\n- ✓ Primary Color in hex format (e.g., #6B21A8)\n- ✓ Facebook Page URL provided\n- ✓ Logo uploaded successfully (attach as comment if missing)\n\n**Error Details:** Check the Actions logs for more information.\n\n**Need help?** Contact support@maseer.media`
             });
+
+      - name: Cleanup Build Artifacts
+        if: always()
+        run: |
+          rm -f firebase-service-account.json || true
+          echo "🧹 Cleaned up temporary files"
+
+      - name: Upload Debug Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-logs-${{ github.run_id }}
+          path: |
+            output/
+            data/
+          retention-days: 1
